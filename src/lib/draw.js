@@ -7,15 +7,16 @@ export const DEFAULT_NAME = "Family World Cup Sweepstake";
 export const PRESET_BIG_TEAMS = [
   "Argentina", "Brazil", "France", "England", "Spain", "Germany", "Portugal",
   "Netherlands", "Belgium", "Croatia", "Uruguay", "Colombia", "Morocco",
-  "Japan", "USA", "Mexico",
+  "Japan", "USA", "Mexico", "Switzerland", "Senegal", "South Korea",
+  "Ecuador", "Austria", "Australia", "Iran", "T\u00fcrkiye",
 ];
 
 export const PRESET_LESSER_TEAMS = [
-  "Uzbekistan", "Panama", "Jordan", "New Zealand", "Qatar", "Saudi Arabia",
-  "Iraq", "South Africa", "Tunisia", "Algeria", "Egypt", "Bolivia",
-  "Paraguay", "Scotland", "Norway", "Sweden", "Türkiye", "Czech Republic",
-  "Haiti", "Cape Verde", "Curaçao", "Canada", "Australia", "South Korea",
-  "Iran", "Ecuador", "Peru", "Chile", "Austria",
+  "Scotland", "Norway", "Sweden", "Czechia", "Bosnia & Herzegovina",
+  "Canada", "Panama", "Haiti", "Cura\u00e7ao", "Paraguay", "Egypt", "Algeria",
+  "Tunisia", "Ivory Coast", "Ghana", "South Africa", "Cape Verde",
+  "Saudi Arabia", "Qatar", "Uzbekistan", "Jordan", "Iraq", "DR Congo",
+  "New Zealand",
 ];
 
 export const FUN_LINES = [

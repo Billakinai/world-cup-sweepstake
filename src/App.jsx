@@ -59,7 +59,6 @@ export default function App() {
       <main className="page" key={route.page + (route.id || "")}>
         {view}
       </main>
-      <footer className="footer">⚽ Made for the family group chat · no app needed</footer>
     </div>
   );
 }

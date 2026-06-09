@@ -43,10 +43,16 @@ export default function DrawPage({ id }) {
     setMutedState(m);
   }
 
+  /** Broadcast the current moment so every cousin's phone shows the wheel live.
+   *  Fire-and-forget: if it ever fails, the admin's draw still works fine. */
+  function pushState(patch) {
+    updateSweepstake(id, { draw_state: patch }).catch(() => {});
+  }
+
   async function loadAll() {
     const [s, p, r] = await Promise.all([getSweepstake(id), listParticipants(id), listResults(id)]);
     setSweepstake(s);
-    setParticipants(p);
+    setParticipants(p.filter((x) => x.role !== "stand"));
     setSavedResults(r);
     return { s, p, r };
   }
@@ -169,6 +175,12 @@ export default function DrawPage({ id }) {
     setLesserPool([...remainingLesser]);
     setStep(0);
     setPhase("idle");
+    const first = rows[0];
+    pushState({
+      live: true, step: 0, phase: "idle", spin: 0,
+      player_name: first.player_name, nickname: first.nickname,
+      big_team: null, lesser_team: null, fun: funIndexRef.current,
+    });
   }
 
   async function quickDraw() {
@@ -259,22 +271,42 @@ export default function DrawPage({ id }) {
     setPhase("spinBig");
     cancelTicks.current = spinTicks(4600);
     setSpinToken((t) => t + 1);
+    pushState({
+      live: true, step, phase: "spinBig", spin: step * 2 + 1,
+      player_name: row.player_name, nickname: row.nickname,
+      big_team: row.big_team, lesser_team: null, fun: funIndexRef.current,
+    });
   }
   function spinLesser() {
     if (phase !== "bigDone") return;
     setPhase("spinLesser");
     cancelTicks.current = spinTicks(4600);
     setSpinToken((t) => t + 1);
+    pushState({
+      live: true, step, phase: "spinLesser", spin: step * 2 + 2,
+      player_name: row.player_name, nickname: row.nickname,
+      big_team: row.big_team, lesser_team: row.lesser_team, fun: funIndexRef.current,
+    });
   }
   async function onLanded() {
     cancelTicks.current();
     if (phase === "spinBig") {
       setPhase("bigDone");
       cheer(0.7);
+      pushState({
+        live: true, step, phase: "bigDone", spin: step * 2 + 1,
+        player_name: row.player_name, nickname: row.nickname,
+        big_team: row.big_team, lesser_team: null, fun: funIndexRef.current,
+      });
     } else if (phase === "spinLesser") {
       setPhase("comboDone");
       confettiBurst(110);
       cheer(1.2);
+      pushState({
+        live: true, step, phase: "comboDone", spin: step * 2 + 2,
+        player_name: row.player_name, nickname: row.nickname,
+        big_team: row.big_team, lesser_team: row.lesser_team, fun: funIndexRef.current,
+      });
       try {
         const saved = await saveOneResult(id, row);
         setSavedResults((prev) =>
@@ -290,12 +322,19 @@ export default function DrawPage({ id }) {
     setLesserPool((p) => p.filter((t) => t !== row.lesser_team));
     if (isLast) {
       setBusy(true);
+      pushState(null);
       await markComplete(id);
       confettiBurst(160);
       bigCheer();
       navigate(`/results/${id}`);
       return;
     }
+    const next = plan[step + 1];
+    pushState({
+      live: true, step: step + 1, phase: "idle", spin: 0,
+      player_name: next.player_name, nickname: next.nickname,
+      big_team: null, lesser_team: null, fun: funIndexRef.current,
+    });
     setStep((s) => s + 1);
     setPhase("idle");
   }

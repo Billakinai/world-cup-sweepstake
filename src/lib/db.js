@@ -85,15 +85,22 @@ export async function listParticipants(sweepstakeId) {
     .sort((a, b) => a.created_at.localeCompare(b.created_at));
 }
 
-export async function addParticipant(sweepstakeId, name, nickname) {
+export async function addParticipant(sweepstakeId, name, nickname, role = "player") {
   if (hasSupabase) {
     const { data, error } = await supabase
+      .from("participants")
+      .insert({ sweepstake_id: sweepstakeId, name, nickname: nickname || null, role })
+      .select()
+      .single();
+    if (!error) return data;
+    // If the role column doesn't exist yet, retry without it so joining never breaks.
+    const retry = await supabase
       .from("participants")
       .insert({ sweepstake_id: sweepstakeId, name, nickname: nickname || null })
       .select()
       .single();
-    if (error) throw error;
-    return data;
+    if (retry.error) throw retry.error;
+    return retry.data;
   }
   const db = localDb();
   const row = {
@@ -101,6 +108,7 @@ export async function addParticipant(sweepstakeId, name, nickname) {
     sweepstake_id: sweepstakeId,
     name,
     nickname: nickname || null,
+    role,
     created_at: new Date().toISOString(),
   };
   db.participants.push(row);
@@ -245,4 +253,25 @@ export async function removeParticipant(participantId) {
   db.participants = db.participants.filter((p) => p.id !== participantId);
   saveLocal(db);
   return true;
+}
+
+/** Admin: move someone between the draw and the stands. */
+export async function setParticipantRole(participantId, role) {
+  if (hasSupabase) {
+    const { data, error } = await supabase
+      .from("participants")
+      .update({ role })
+      .eq("id", participantId)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }
+  const db = localDb();
+  const p = db.participants.find((x) => x.id === participantId);
+  if (p) {
+    p.role = role;
+    saveLocal(db);
+  }
+  return p || null;
 }
