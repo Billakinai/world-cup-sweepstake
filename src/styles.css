@@ -882,7 +882,6 @@ body {
   background: #f4f0fc;
   border-radius: 14px;
   padding: 7px 10px;
-  animation: pop-in 0.3s ease both;
   min-width: 0;
 }
 .roster-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }

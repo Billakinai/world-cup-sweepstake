@@ -341,9 +341,9 @@ export default function RoomPage({ id }) {
 
   /* ----------------------------- Pieces ----------------------------------- */
 
-  function RosterRow({ p, i, inDraw }) {
+  const renderRosterRow = (p, i, inDraw) => {
     return (
-      <div className="roster-row" style={{ animationDelay: `${Math.min(i, 12) * 30}ms` }}>
+      <div className="roster-row" key={p.id}>
         <span className="chip-avatar" style={{ background: CHIP_COLORS[i % CHIP_COLORS.length] }}>
           {p.name.trim().charAt(0).toUpperCase()}
         </span>
@@ -366,7 +366,7 @@ export default function RoomPage({ id }) {
         )}
       </div>
     );
-  }
+  };
 
   const badgeText = isComplete
     ? "Draw complete 🏆"
@@ -470,9 +470,7 @@ export default function RoomPage({ id }) {
               <p className="muted empty-state">Nobody yet — be the first in!</p>
             ) : (
               <div className="roster">
-                {players.map((p, i) => (
-                  <RosterRow key={p.id} p={p} i={i} inDraw />
-                ))}
+                {players.map((p, i) => renderRosterRow(p, i, true))}
               </div>
             )}
 
@@ -483,9 +481,7 @@ export default function RoomPage({ id }) {
                   <span className="count-pill">{stands.length}</span>
                 </div>
                 <div className="roster">
-                  {stands.map((p, i) => (
-                    <RosterRow key={p.id} p={p} i={i} inDraw={false} />
-                  ))}
+                  {stands.map((p, i) => renderRosterRow(p, i, false))}
                 </div>
               </>
             )}
