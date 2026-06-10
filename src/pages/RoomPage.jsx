@@ -41,6 +41,10 @@ const QUICK_EMOJI = ["⚽", "🔥", "😂", "🏆", "🐺", "⭐", "😭", "💀
 export default function RoomPage({ id }) {
   const [sweepstake, setSweepstake] = useState(undefined);
   const [everyone, setEveryone] = useState([]);
+  const [loadedOnce, setLoadedOnce] = useState(false);
+  const joinedNameRef = useRef("");
+  const joinGraceRef = useRef(0);
+  const missRef = useRef(0);
   const [liveResults, setLiveResults] = useState([]);
   const [messages, setMessages] = useState([]);
   const [tab, setTab] = useState("room");
@@ -86,6 +90,10 @@ export default function RoomPage({ id }) {
 
   const timer = useRef(null);
 
+  useEffect(() => {
+    joinedNameRef.current = joinedName;
+  }, [joinedName]);
+
   async function refresh() {
     try {
       const [s, p, r, m] = await Promise.all([
@@ -98,7 +106,25 @@ export default function RoomPage({ id }) {
       setEveryone(p);
       setLiveResults(r);
       setMessages(m);
+      setLoadedOnce(true);
       if (pin && s && pin === s.admin_pin) setAdminUnlocked(true);
+      const jn = joinedNameRef.current;
+      if (jn && s && s.status !== "complete" && Date.now() > joinGraceRef.current) {
+        const stillIn = p.some(
+          (x) => x.name.trim().toLowerCase() === jn.trim().toLowerCase()
+        );
+        if (stillIn) {
+          missRef.current = 0;
+        } else if (++missRef.current >= 2) {
+          missRef.current = 0;
+          localStorage.removeItem(`fwcs-me-${id}`);
+          localStorage.removeItem(`fwcs-nick-${id}`);
+          localStorage.removeItem(`fwcs-role-${id}`);
+          setJoinedName("");
+          setJoinedNick("");
+          setJoinedRole("player");
+        }
+      }
     } catch {
       setSweepstake((prev) => (prev === undefined ? null : prev));
     }
@@ -255,6 +281,8 @@ export default function RoomPage({ id }) {
       localStorage.setItem(`fwcs-me-${id}`, trimmed);
       localStorage.setItem(`fwcs-nick-${id}`, nick);
       localStorage.setItem(`fwcs-role-${id}`, role);
+      joinGraceRef.current = Date.now() + 8000;
+      missRef.current = 0;
       setJoinedName(trimmed);
       setJoinedNick(nick);
       setJoinedRole(role);
