@@ -300,12 +300,19 @@ export async function listMatches(sweepstakeId) {
     .sort((a, b) => new Date(a.kickoff_at) - new Date(b.kickoff_at));
 }
 
-export async function addMatch(sweepstakeId, { home, away, kickoff_at, is_knockout }) {
-  const row = { sweepstake_id: sweepstakeId, home, away, kickoff_at, is_knockout: !!is_knockout };
+export async function addMatch(sweepstakeId, { home, away, kickoff_at, is_knockout, q_fg = true, q_score = true, q_winner = false }) {
+  const row = {
+    sweepstake_id: sweepstakeId, home, away, kickoff_at,
+    is_knockout: !!is_knockout, q_fg, q_score, q_winner,
+  };
   if (hasSupabase) {
     const { data, error } = await supabase.from("matches").insert(row).select().single();
-    if (error) throw error;
-    return data;
+    if (!error) return data;
+    // Question columns may not exist yet — retry with the basics so nothing breaks.
+    const basic = { sweepstake_id: sweepstakeId, home, away, kickoff_at, is_knockout: !!is_knockout };
+    const retry = await supabase.from("matches").insert(basic).select().single();
+    if (retry.error) throw retry.error;
+    return retry.data;
   }
   const db = ensureGameTables(localDb());
   const full = {
@@ -364,12 +371,16 @@ export async function addPrediction(matchId, sweepstakeId, name, payload) {
     fg_none: !!payload.fg_none,
     home: payload.home,
     away: payload.away,
+    winner: payload.winner || null,
     finish_type: payload.finish_type || null,
   };
   if (hasSupabase) {
     const { data, error } = await supabase.from("predictions").insert(row).select().single();
-    if (error) throw error;
-    return data;
+    if (!error) return data;
+    const { winner, ...basic } = row;
+    const retry = await supabase.from("predictions").insert(basic).select().single();
+    if (retry.error) throw retry.error;
+    return retry.data;
   }
   const db = ensureGameTables(localDb());
   if (db.predictions.some((p) => p.match_id === matchId && p.name.toLowerCase() === name.toLowerCase())) {

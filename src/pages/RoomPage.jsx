@@ -6,6 +6,7 @@ import { confettiBurst } from "../lib/confetti";
 import { spinTicks, cheer } from "../lib/sound";
 import { HYPE_LINES, CHIP_COLORS, pickNickname, parseTeams, pickFunLine } from "../lib/draw";
 import PredictTab from "../components/PredictTab";
+import BoardTab from "../components/BoardTab";
 import { kickedOff } from "../lib/predict";
 import {
   getSweepstake,
@@ -53,7 +54,7 @@ export default function RoomPage({ id }) {
   const [messages, setMessages] = useState([]);
   const [matches, setMatches] = useState([]);
   const [predictions, setPredictions] = useState([]);
-  const [tab, setTab] = useState("room");
+  const [tab, setTab] = useState("predict");
 
   // Joining
   const [joinedName, setJoinedName] = useState(localStorage.getItem(`fwcs-me-${id}`) || "");
@@ -204,6 +205,13 @@ export default function RoomPage({ id }) {
     wasLiveRef.current = live;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [Boolean(ds)]);
+
+  // Wheels tab retires once the draw is complete
+  useEffect(() => {
+    if (sweepstake && sweepstake.status === "complete") {
+      setTab((t) => (t === "wheels" ? "room" : t));
+    }
+  }, [sweepstake]);
 
   // Keep chat scrolled to the newest message
   useEffect(() => {
@@ -869,29 +877,53 @@ export default function RoomPage({ id }) {
         <PredictTab
           sweepstake={sweepstake}
           participants={everyone}
+          drawResults={liveResults}
           matches={matches}
           predictions={predictions}
           joinedName={joinedName}
           adminUnlocked={adminUnlocked}
-          adminOpen={adminOpen}
+          onAdminUnlock={(p) => {
+            if (sweepstake && p === sweepstake.admin_pin) {
+              sessionStorage.setItem(`fwcs-admin-${id}`, p);
+              setPin(p);
+              setAdminUnlocked(true);
+              return true;
+            }
+            return false;
+          }}
           now={now}
           refresh={refresh}
         />
       )}
 
+      {/* ============================ LEADERBOARD TAB ============================ */}
+      {tab === "board" && (
+        <BoardTab
+          participants={everyone}
+          matches={matches}
+          predictions={predictions}
+          joinedName={joinedName}
+        />
+      )}
+
       {/* Bottom tab bar */}
       <nav className="tabbar">
-        <button className={`tabbtn ${tab === "room" ? "on" : ""}`} onClick={() => setTab("room")}>
-          <span className="tabicon">🏠</span>Room
-        </button>
-        <button className={`tabbtn ${tab === "wheels" ? "on" : ""}`} onClick={() => setTab("wheels")}>
-          <span className="tabicon">🎡</span>Wheels
-          {(liveShow || showCountdown) && <span className="tab-dot" />}
-        </button>
         <button className={`tabbtn ${tab === "predict" ? "on" : ""}`} onClick={() => setTab("predict")}>
           <span className="tabicon">🔮</span>Predict
           {needsMyPrediction && <span className="tab-dot" />}
         </button>
+        <button className={`tabbtn ${tab === "board" ? "on" : ""}`} onClick={() => setTab("board")}>
+          <span className="tabicon">🏆</span>Board
+        </button>
+        <button className={`tabbtn ${tab === "room" ? "on" : ""}`} onClick={() => setTab("room")}>
+          <span className="tabicon">🏠</span>Room
+        </button>
+        {!isComplete && (
+          <button className={`tabbtn ${tab === "wheels" ? "on" : ""}`} onClick={() => setTab("wheels")}>
+            <span className="tabicon">🎡</span>Wheels
+            {(liveShow || showCountdown) && <span className="tab-dot" />}
+          </button>
+        )}
       </nav>
       <div className="tabbar-spacer" />
     </>

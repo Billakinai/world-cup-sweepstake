@@ -25,21 +25,36 @@ export function flagOf(team) {
  *  - Exact final score = 3.
  *  - Knockout games only: normal time / extra time / penalties correct = 1.
  */
+export function matchWinner(match) {
+  if (match.result_home == null || match.result_away == null) return null;
+  if (Number(match.result_home) > Number(match.result_away)) return "home";
+  if (Number(match.result_home) < Number(match.result_away)) return "away";
+  return "draw";
+}
+
 export function scorePrediction(match, pred) {
   if (!match || !pred || match.status !== "scored") return 0;
   let pts = 0;
-  if (match.fg_none) {
-    if (pred.fg_none) pts += 3;
-  } else if (!pred.fg_none && pred.fg_minute != null && match.fg_minute != null) {
-    const diff = Math.abs(Number(pred.fg_minute) - Number(match.fg_minute));
-    if (diff === 0) pts += 3;
-    else if (diff === 1) pts += 2;
+  if (match.q_fg !== false) {
+    if (match.fg_none) {
+      if (pred.fg_none) pts += 3;
+    } else if (!pred.fg_none && pred.fg_minute != null && match.fg_minute != null) {
+      const diff = Math.abs(Number(pred.fg_minute) - Number(match.fg_minute));
+      if (diff === 0) pts += 3;
+      else if (diff === 1) pts += 2;
+    }
   }
   if (
+    match.q_score !== false &&
+    pred.home != null &&
+    pred.away != null &&
     Number(pred.home) === Number(match.result_home) &&
     Number(pred.away) === Number(match.result_away)
   ) {
     pts += 3;
+  }
+  if (match.q_winner === true && pred.winner && pred.winner === matchWinner(match)) {
+    pts += 2;
   }
   if (match.is_knockout && match.finish_type && pred.finish_type === match.finish_type) {
     pts += 1;
