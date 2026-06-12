@@ -5,6 +5,8 @@ import Wheel from "../components/Wheel";
 import { confettiBurst } from "../lib/confetti";
 import { spinTicks, cheer } from "../lib/sound";
 import { HYPE_LINES, CHIP_COLORS, pickNickname, parseTeams, pickFunLine } from "../lib/draw";
+import PredictTab from "../components/PredictTab";
+import { kickedOff } from "../lib/predict";
 import {
   getSweepstake,
   listParticipants,
@@ -15,6 +17,8 @@ import {
   listResults,
   listMessages,
   sendMessage,
+  listMatches,
+  listPredictions,
 } from "../lib/db";
 
 function shareUrl(id) {
@@ -47,6 +51,8 @@ export default function RoomPage({ id }) {
   const missRef = useRef(0);
   const [liveResults, setLiveResults] = useState([]);
   const [messages, setMessages] = useState([]);
+  const [matches, setMatches] = useState([]);
+  const [predictions, setPredictions] = useState([]);
   const [tab, setTab] = useState("room");
 
   // Joining
@@ -108,6 +114,13 @@ export default function RoomPage({ id }) {
       setMessages(m);
       setLoadedOnce(true);
       if (pin && s && pin === s.admin_pin) setAdminUnlocked(true);
+      try {
+        const [mt, pr] = await Promise.all([listMatches(id), listPredictions(id)]);
+        setMatches(mt);
+        setPredictions(pr);
+      } catch {
+        /* predictions tables not ready yet — room still works */
+      }
       const jn = joinedNameRef.current;
       if (jn && s && s.status !== "complete" && Date.now() > joinGraceRef.current) {
         const stillIn = p.some(
@@ -143,6 +156,8 @@ export default function RoomPage({ id }) {
         .on("postgres_changes", { event: "*", schema: "public", table: "sweepstakes", filter: `id=eq.${id}` }, refresh)
         .on("postgres_changes", { event: "*", schema: "public", table: "results", filter: `sweepstake_id=eq.${id}` }, refresh)
         .on("postgres_changes", { event: "*", schema: "public", table: "messages", filter: `sweepstake_id=eq.${id}` }, refresh)
+        .on("postgres_changes", { event: "*", schema: "public", table: "matches", filter: `sweepstake_id=eq.${id}` }, refresh)
+        .on("postgres_changes", { event: "*", schema: "public", table: "predictions", filter: `sweepstake_id=eq.${id}` }, refresh)
         .subscribe();
     }
     return () => {
@@ -396,6 +411,17 @@ export default function RoomPage({ id }) {
     );
   };
 
+  const needsMyPrediction =
+    Boolean(joinedName) &&
+    matches.some(
+      (m) =>
+        m.status !== "scored" &&
+        !kickedOff(m, now) &&
+        !predictions.some(
+          (p) => p.match_id === m.id && p.name.toLowerCase() === joinedName.toLowerCase()
+        )
+    );
+
   const badgeText = isComplete
     ? "Draw complete 🏆"
     : liveShow || drawInProgress
@@ -566,7 +592,7 @@ export default function RoomPage({ id }) {
           )}
 
           {/* Admin */}
-          {!isComplete && (
+          {(
             <section className="admin-zone">
               {!adminOpen ? (
                 <button className="link-btn light" onClick={() => setAdminOpen(true)}>
@@ -595,16 +621,22 @@ export default function RoomPage({ id }) {
                     </>
                   ) : (
                     <div className="admin-actions">
-                      <button
-                        className="btn btn-primary btn-big"
-                        onClick={() => navigate(`/draw/${id}`)}
-                        disabled={players.length === 0}
-                      >
-                        {drawInProgress ? "Continue the draw 🎡" : "Start the draw 🎡"}
-                      </button>
-                      {players.length === 0 && <p className="field-hint">You need at least one player in the draw.</p>}
+                      {isComplete ? (
+                        <p className="field-hint">Teams are drawn 🏆 — manage matches & results on the 🔮 Predict tab (keep this panel open and switch tabs).</p>
+                      ) : (
+                        <>
+                          <button
+                            className="btn btn-primary btn-big"
+                            onClick={() => navigate(`/draw/${id}`)}
+                            disabled={players.length === 0}
+                          >
+                            {drawInProgress ? "Continue the draw 🎡" : "Start the draw 🎡"}
+                          </button>
+                          {players.length === 0 && <p className="field-hint">You need at least one player in the draw.</p>}
+                        </>
+                      )}
 
-                      {!drawInProgress && (
+                      {!drawInProgress && !isComplete && (
                         <>
                           <div className="edit-panel">
                             <span className="field-label">⏰ Draw night countdown</span>
@@ -832,6 +864,21 @@ export default function RoomPage({ id }) {
         </>
       )}
 
+      {/* ============================ PREDICT TAB ============================ */}
+      {tab === "predict" && (
+        <PredictTab
+          sweepstake={sweepstake}
+          participants={everyone}
+          matches={matches}
+          predictions={predictions}
+          joinedName={joinedName}
+          adminUnlocked={adminUnlocked}
+          adminOpen={adminOpen}
+          now={now}
+          refresh={refresh}
+        />
+      )}
+
       {/* Bottom tab bar */}
       <nav className="tabbar">
         <button className={`tabbtn ${tab === "room" ? "on" : ""}`} onClick={() => setTab("room")}>
@@ -840,6 +887,10 @@ export default function RoomPage({ id }) {
         <button className={`tabbtn ${tab === "wheels" ? "on" : ""}`} onClick={() => setTab("wheels")}>
           <span className="tabicon">🎡</span>Wheels
           {(liveShow || showCountdown) && <span className="tab-dot" />}
+        </button>
+        <button className={`tabbtn ${tab === "predict" ? "on" : ""}`} onClick={() => setTab("predict")}>
+          <span className="tabicon">🔮</span>Predict
+          {needsMyPrediction && <span className="tab-dot" />}
         </button>
       </nav>
       <div className="tabbar-spacer" />

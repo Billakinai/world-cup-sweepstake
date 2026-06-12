@@ -8,6 +8,12 @@ import { supabase, hasSupabase } from "../supabaseClient";
 
 const LS_KEY = "fwcs-local-db-v1";
 
+function ensureGameTables(db) {
+  if (!db.matches) db.matches = [];
+  if (!db.predictions) db.predictions = [];
+  return db;
+}
+
 function localDb() {
   try {
     return JSON.parse(localStorage.getItem(LS_KEY)) || { sweepstakes: {}, participants: [], results: [] };
@@ -274,4 +280,103 @@ export async function setParticipantRole(participantId, role) {
     saveLocal(db);
   }
   return p || null;
+}
+
+/* ---------------- Predictions mini-game ---------------- */
+
+export async function listMatches(sweepstakeId) {
+  if (hasSupabase) {
+    const { data, error } = await supabase
+      .from("matches")
+      .select("*")
+      .eq("sweepstake_id", sweepstakeId)
+      .order("kickoff_at", { ascending: true });
+    if (error) throw error;
+    return data || [];
+  }
+  const db = ensureGameTables(localDb());
+  return db.matches
+    .filter((m) => m.sweepstake_id === sweepstakeId)
+    .sort((a, b) => new Date(a.kickoff_at) - new Date(b.kickoff_at));
+}
+
+export async function addMatch(sweepstakeId, { home, away, kickoff_at, is_knockout }) {
+  const row = { sweepstake_id: sweepstakeId, home, away, kickoff_at, is_knockout: !!is_knockout };
+  if (hasSupabase) {
+    const { data, error } = await supabase.from("matches").insert(row).select().single();
+    if (error) throw error;
+    return data;
+  }
+  const db = ensureGameTables(localDb());
+  const full = {
+    id: uid(), ...row, result_home: null, result_away: null, fg_minute: null,
+    fg_none: false, finish_type: null, status: "upcoming", created_at: new Date().toISOString(),
+  };
+  db.matches.push(full);
+  saveLocal(db);
+  return full;
+}
+
+export async function updateMatch(matchId, patch) {
+  if (hasSupabase) {
+    const { data, error } = await supabase.from("matches").update(patch).eq("id", matchId).select().single();
+    if (error) throw error;
+    return data;
+  }
+  const db = ensureGameTables(localDb());
+  const m = db.matches.find((x) => x.id === matchId);
+  if (m) { Object.assign(m, patch); saveLocal(db); }
+  return m || null;
+}
+
+export async function deleteMatch(matchId) {
+  if (hasSupabase) {
+    const { error } = await supabase.from("matches").delete().eq("id", matchId);
+    if (error) throw error;
+    return;
+  }
+  const db = ensureGameTables(localDb());
+  db.matches = db.matches.filter((x) => x.id !== matchId);
+  db.predictions = db.predictions.filter((x) => x.match_id !== matchId);
+  saveLocal(db);
+}
+
+export async function listPredictions(sweepstakeId) {
+  if (hasSupabase) {
+    const { data, error } = await supabase
+      .from("predictions")
+      .select("*")
+      .eq("sweepstake_id", sweepstakeId);
+    if (error) throw error;
+    return data || [];
+  }
+  const db = ensureGameTables(localDb());
+  return db.predictions.filter((p) => p.sweepstake_id === sweepstakeId);
+}
+
+/** One shot per person per match — the unique constraint makes changes impossible. */
+export async function addPrediction(matchId, sweepstakeId, name, payload) {
+  const row = {
+    match_id: matchId,
+    sweepstake_id: sweepstakeId,
+    name,
+    fg_minute: payload.fg_none ? null : payload.fg_minute,
+    fg_none: !!payload.fg_none,
+    home: payload.home,
+    away: payload.away,
+    finish_type: payload.finish_type || null,
+  };
+  if (hasSupabase) {
+    const { data, error } = await supabase.from("predictions").insert(row).select().single();
+    if (error) throw error;
+    return data;
+  }
+  const db = ensureGameTables(localDb());
+  if (db.predictions.some((p) => p.match_id === matchId && p.name.toLowerCase() === name.toLowerCase())) {
+    throw new Error("already predicted");
+  }
+  const full = { id: uid(), ...row, created_at: new Date().toISOString() };
+  db.predictions.push(full);
+  saveLocal(db);
+  return full;
 }
