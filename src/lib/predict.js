@@ -14,9 +14,34 @@ export const TEAM_FLAGS = {
   jordan: "🇯🇴", iraq: "🇮🇶", "dr congo": "🇨🇩", "new zealand": "🇳🇿",
 };
 
+const TEAM_ALIASES = {
+  columbia: "colombia",
+  bosnia: "bosnia & herzegovina",
+  "bosnia and herzegovina": "bosnia & herzegovina",
+  "czech republic": "czechia",
+  turkey: "turkiye",
+  "ivory coast": "ivory coast",
+};
+
+/** Normalise a team name: lowercase, strip accents, apply family-spelling aliases. */
+export function canonTeam(name) {
+  if (!name) return "";
+  let t = name.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  if (TEAM_ALIASES[t]) t = TEAM_ALIASES[t];
+  return t;
+}
+
+export function teamsMatch(a, b) {
+  return canonTeam(a) !== "" && canonTeam(a) === canonTeam(b);
+}
+
 export function flagOf(team) {
   if (!team) return "🏳️";
-  return TEAM_FLAGS[team.trim().toLowerCase()] || "🏳️";
+  const c = canonTeam(team);
+  for (const [k, v] of Object.entries(TEAM_FLAGS)) {
+    if (canonTeam(k) === c) return v;
+  }
+  return "🏳️";
 }
 
 /**

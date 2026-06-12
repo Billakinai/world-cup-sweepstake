@@ -287,7 +287,7 @@ export default function RoomPage({ id }) {
     setJoining(true);
     try {
       const fresh = await getSweepstake(id);
-      if (fresh?.locked || fresh?.status === "complete") {
+      if (fresh?.locked && fresh?.status !== "complete") {
         setJoinError("Joining just closed — the draw is starting!");
         return;
       }
@@ -298,7 +298,7 @@ export default function RoomPage({ id }) {
       }
       const cap = Math.min((fresh.big_teams || []).length, (fresh.lesser_teams || []).length);
       const playerCount = existing.filter((p) => p.role !== "stand").length;
-      const role = playerCount >= cap ? "stand" : "player";
+      const role = fresh?.status === "complete" || playerCount >= cap ? "stand" : "player";
       const nick = pickNickname(existing.map((p) => p.nickname));
       await addParticipant(id, trimmed, nick, role);
       localStorage.setItem(`fwcs-me-${id}`, trimmed);
@@ -431,7 +431,7 @@ export default function RoomPage({ id }) {
     );
 
   const badgeText = isComplete
-    ? "Draw complete 🏆"
+    ? `${everyone.length} in the room`
     : liveShow || drawInProgress
     ? `🎡 LIVE — ${liveResults.length} of ${players.length} drawn`
     : `Draw ${players.length}/${capacity}${stands.length ? ` · 🍿 ${stands.length}` : ""}`;
@@ -466,6 +466,8 @@ export default function RoomPage({ id }) {
                     <span className="combo-chip green">🐺 {myResult.lesser_team}</span>
                   </div>
                 </>
+              ) : hasJoined ? (
+                <h2 className="card-title">You're in for predictions, {joinedName}! 🍿</h2>
               ) : (
                 <h2 className="card-title">The teams are out!</h2>
               )}
@@ -476,13 +478,13 @@ export default function RoomPage({ id }) {
           )}
 
           {/* Join */}
-          {!isComplete && !hasJoined && (
+          {!hasJoined && (
             <section className="card join-card">
-              {isLocked ? (
+              {isLocked && !isComplete ? (
                 <p className="muted empty-state">Joining is locked — the draw is about to start. Watch this space! 👀</p>
               ) : (
                 <>
-                  <h2 className="card-title">Jump in 👇</h2>
+                  <h2 className="card-title">{isComplete ? "Join the predictions 👇" : "Jump in 👇"}</h2>
                   <div className="share-row">
                     <input
                       className="input"
@@ -497,7 +499,9 @@ export default function RoomPage({ id }) {
                     </button>
                   </div>
                   <p className="field-hint">
-                    {spotsLeft > 0
+                    {isComplete
+                      ? "The team draw is done — you'll join the stands 🍿 with chat + the predictions game"
+                      : spotsLeft > 0
                       ? `${spotsLeft} draw spot${spotsLeft === 1 ? "" : "s"} left · free nickname included 😎`
                       : "Draw spots are full — you'll join the stands 🍿 (chat + watch live)"}
                   </p>

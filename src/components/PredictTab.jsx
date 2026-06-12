@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import {
   flagOf,
+  teamsMatch,
   scorePrediction,
   matchWinner,
   kickedOff,
@@ -70,8 +71,8 @@ export default function PredictTab({
   /** Sweepstake owners of a team: [{name, icon}] */
   const ownersOf = (team) =>
     drawResults
-      .filter((r) => r.big_team === team || r.lesser_team === team)
-      .map((r) => ({ name: r.player_name, icon: r.big_team === team ? "⭐" : "🐺" }));
+      .filter((r) => teamsMatch(r.big_team, team) || teamsMatch(r.lesser_team, team))
+      .map((r) => ({ name: r.player_name, icon: teamsMatch(r.big_team, team) ? "⭐" : "🐺" }));
 
   const isMine = (m) =>
     Boolean(joinedName) &&
@@ -279,13 +280,13 @@ export default function PredictTab({
     const oa = ownersOf(m.away);
     if (w === "draw") {
       [...oh.map((o) => ({ o, t: m.home })), ...oa.map((o) => ({ o, t: m.away }))].forEach(({ o, t }) =>
-        lines.push(`🤝 ${o.name}'s team (${t}) drew`)
+        lines.push({ text: `🤝 ${o.name}'s team (${t}) drew`, kind: "draw" })
       );
     } else {
       const winT = w === "home" ? m.home : m.away;
       const loseT = w === "home" ? m.away : m.home;
-      (w === "home" ? oh : oa).forEach((o) => lines.push(`🎉 ${o.name}'s team (${winT}) WON!`));
-      (w === "home" ? oa : oh).forEach((o) => lines.push(`😬 ${o.name}'s team (${loseT}) lost`));
+      (w === "home" ? oh : oa).forEach((o) => lines.push({ text: `🎉 ${o.name}'s team (${winT}) WON!`, kind: "win" }));
+      (w === "home" ? oa : oh).forEach((o) => lines.push({ text: `😬 ${o.name}'s team (${loseT}) lost`, kind: "lose" }));
     }
     return lines;
   };
@@ -399,7 +400,7 @@ export default function PredictTab({
             {verdictLines(m).length > 0 && (
               <div className="verdicts">
                 {verdictLines(m).map((v, i) => (
-                  <p className="verdict-line" key={i}>{v}</p>
+                  <p className={`verdict-line ${v.kind}`} key={i}>{v.text}</p>
                 ))}
               </div>
             )}
