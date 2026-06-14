@@ -123,7 +123,7 @@ export default function RoomPage({ id }) {
         /* predictions tables not ready yet — room still works */
       }
       const jn = joinedNameRef.current;
-      if (jn && s && s.status !== "complete" && Date.now() > joinGraceRef.current) {
+      if (jn && s && Date.now() > joinGraceRef.current) {
         const stillIn = p.some(
           (x) => x.name.trim().toLowerCase() === jn.trim().toLowerCase()
         );
