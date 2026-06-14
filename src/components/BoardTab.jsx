@@ -42,7 +42,7 @@ export default function BoardTab({ participants = [], matches, predictions, join
         .sort((a, b) => b.s - a.s || a.p.name.localeCompare(b.p.name))
     : [];
   const bestLast = lastScores.length && lastScores[0].s > 0 ? lastScores[0].s : 0;
-  const lastWinners = lastScores.filter((x) => x.s === bestLast && bestLast > 0);
+  const lastWinners = lastScores.filter((x) => x.s > 0);
 
   const medal = (i) => (i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}`);
 
