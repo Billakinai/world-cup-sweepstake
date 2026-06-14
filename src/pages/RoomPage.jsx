@@ -292,8 +292,28 @@ export default function RoomPage({ id }) {
         return;
       }
       const existing = await listParticipants(id);
-      if (existing.some((p) => p.name.trim().toLowerCase() === trimmed.toLowerCase())) {
-        setJoinError(`"${trimmed}" is taken — add an initial or surname.`);
+      const already = existing.find(
+        (p) => p.name.trim().toLowerCase() === trimmed.toLowerCase()
+      );
+      if (already) {
+        const rejoin = window.confirm(
+          `"${already.name}" is already in the room — is that you rejoining?\n\n` +
+          `OK = come back as "${already.name}".  Cancel = use a different name.`
+        );
+        if (!rejoin) {
+          setJoinError("No problem — pick a slightly different name then.");
+          return;
+        }
+        localStorage.setItem(`fwcs-me-${id}`, already.name);
+        localStorage.setItem(`fwcs-nick-${id}`, already.nickname || "");
+        localStorage.setItem(`fwcs-role-${id}`, already.role || "player");
+        joinGraceRef.current = Date.now() + 8000;
+        missRef.current = 0;
+        setJoinedName(already.name);
+        setJoinedNick(already.nickname || "");
+        setJoinedRole(already.role || "player");
+        confettiBurst(70);
+        refresh();
         return;
       }
       const cap = Math.min((fresh.big_teams || []).length, (fresh.lesser_teams || []).length);
