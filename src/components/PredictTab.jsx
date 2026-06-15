@@ -3,6 +3,7 @@ import {
   flagOf,
   teamsMatch,
   scorePrediction,
+  scoreBreakdown,
   matchWinner,
   kickedOff,
   fmtCountdown,
@@ -52,6 +53,7 @@ export default function PredictTab({
   const [rFg, setRFg] = useState("");
   const [rNone, setRNone] = useState(false);
   const [rFinish, setRFinish] = useState("normal");
+  const [rWinner, setRWinner] = useState("");
   const [resErr, setResErr] = useState("");
 
   const isAdmin = adminUnlocked && panelOpen;
@@ -96,12 +98,37 @@ export default function PredictTab({
   const earlierDone = done.slice(1);
   const doneShown = showAllDone ? earlierDone : [];
 
+  // Rules card reflects what's actually being asked. Before any match exists we
+  // explain the full game; once matches are in, we scope to the live ones.
+  const ruleScope = matches.filter((m) => m.status !== "scored");
+  const scope = ruleScope.length ? ruleScope : matches;
+  const noMatches = matches.length === 0;
+  const showFgRule = noMatches || scope.some((m) => m.q_fg !== false);
+  const showScoreRule = noMatches || scope.some((m) => m.q_score !== false);
+  const showWinnerRule = noMatches || scope.some((m) => m.q_winner === true);
+  const showKoRule = !noMatches && scope.some((m) => m.is_knockout);
+
   function form(mid) {
     return forms[mid] || { minute: "", none: false, home: "", away: "", winner: "", finish: "" };
   }
   function setForm(mid, patch) {
     setForms((f) => ({ ...f, [mid]: { ...form(mid), ...patch } }));
   }
+
+  /** Toggle "No goals" without throwing away what the player already typed. */
+  function toggleNoGoals(mid) {
+    const f = form(mid);
+    if (!f.none) {
+      setForm(mid, { none: true, _saved: { minute: f.minute, home: f.home, away: f.away }, home: "0", away: "0" });
+    } else {
+      const s = f._saved || {};
+      setForm(mid, { none: false, minute: s.minute ?? "", home: s.home ?? "", away: s.away ?? "" });
+    }
+  }
+
+  /** "1st goal +3 · score +3" — only the parts that actually scored. */
+  const breakdownText = (m, p) =>
+    scoreBreakdown(m, p).map((x) => `${x.label} +${x.pts}`).join(" · ");
 
   /* ----------------------------- Actions --------------------------------- */
 
@@ -203,11 +230,17 @@ export default function PredictTab({
   }
 
   async function applyQuestionsToAll(m) {
-    if (!window.confirm(`Use this match's questions for ALL ${upcoming.length} upcoming matches?`)) return;
+    const targets = upcoming.filter(
+      (x) => x.id !== m.id && !predictions.some((p) => p.match_id === x.id)
+    );
+    if (targets.length === 0) {
+      window.alert("No other upcoming matches to update — the rest either have predictions in already or there aren't any.");
+      return;
+    }
+    if (!window.confirm(`Use this match's questions for ${targets.length} other upcoming match${targets.length === 1 ? "" : "es"}? (Any match that already has predictions is left untouched.)`)) return;
     setBusy(true);
     try {
-      for (const x of upcoming) {
-        if (x.id === m.id) continue;
+      for (const x of targets) {
         // eslint-disable-next-line no-await-in-loop
         await updateMatch(x.id, {
           q_fg: m.q_fg !== false,
@@ -228,6 +261,7 @@ export default function PredictTab({
     setRFg(m.fg_minute ?? "");
     setRNone(!!m.fg_none);
     setRFinish(m.finish_type || "normal");
+    setRWinner(m.winner_side || "");
     setResErr("");
   }
 
@@ -236,16 +270,26 @@ export default function PredictTab({
     if (rHome === "" || rAway === "") return setResErr("Enter the final score.");
     if (m.q_fg !== false && !rNone && rFg === "") return setResErr("Enter the first-goal minute (or tap No goals).");
     if (rNone && (Number(rHome) !== 0 || Number(rAway) !== 0)) return setResErr("No goals means 0-0!");
+    const levelKO = m.is_knockout && Number(rHome) === Number(rAway);
+    if (levelKO && !rWinner) return setResErr("This knockout is level — pick who went through (extra time / pens).");
     setBusy(true);
     try {
-      await updateMatch(m.id, {
+      const patch = {
         result_home: Number(rHome),
         result_away: Number(rAway),
         fg_minute: rNone || rFg === "" ? null : Number(rFg),
         fg_none: rNone,
         finish_type: m.is_knockout ? rFinish : null,
+        winner_side: levelKO ? rWinner : null,
         status: "scored",
-      });
+      };
+      try {
+        await updateMatch(m.id, patch);
+      } catch {
+        // winner_side column may not exist on older databases — save without it.
+        const { winner_side, ...basic } = patch;
+        await updateMatch(m.id, basic);
+      }
       setResultFor(null);
       refresh();
     } catch {
@@ -303,6 +347,7 @@ export default function PredictTab({
 
   function renderAdminTools(m) {
     if (!isAdmin || m.status === "scored") return null;
+    const hasPreds = predictions.some((p) => p.match_id === m.id);
     return (
       <div className="admin-match-row">
         {resultFor === m.id ? (
@@ -331,6 +376,19 @@ export default function PredictTab({
                 ))}
               </div>
             )}
+            {m.is_knockout && rHome !== "" && rAway !== "" && Number(rHome) === Number(rAway) && (
+              <>
+                <span className="field-label">Who went through? <span className="optional">— extra time / pens</span></span>
+                <div className="finish-row">
+                  <button className={`btn btn-small ${rWinner === "home" ? "btn-primary" : "btn-ghost"}`} onClick={() => setRWinner("home")}>
+                    {flagOf(m.home)} {m.home}
+                  </button>
+                  <button className={`btn btn-small ${rWinner === "away" ? "btn-primary" : "btn-ghost"}`} onClick={() => setRWinner("away")}>
+                    {flagOf(m.away)} {m.away}
+                  </button>
+                </div>
+              </>
+            )}
             {resErr && <p className="error">{resErr}</p>}
             <div className="share-row">
               <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => saveResult(m)} disabled={busy}>
@@ -343,11 +401,15 @@ export default function PredictTab({
           <>
             <div className="q-toggle-row">
               <span className="q-toggle-label">Questions:</span>
-              <button className={`q-chip ${m.q_fg !== false ? "on" : ""}`} onClick={() => toggleQuestion(m, "q_fg")}>⏱️ 1st goal</button>
-              <button className={`q-chip ${m.q_score !== false ? "on" : ""}`} onClick={() => toggleQuestion(m, "q_score")}>🔢 Score</button>
-              <button className={`q-chip ${m.q_winner === true ? "on" : ""}`} onClick={() => toggleQuestion(m, "q_winner")}>🏆 Winner</button>
+              <button className={`q-chip ${m.q_fg !== false ? "on" : ""}`} disabled={hasPreds} onClick={() => toggleQuestion(m, "q_fg")}>⏱️ 1st goal</button>
+              <button className={`q-chip ${m.q_score !== false ? "on" : ""}`} disabled={hasPreds} onClick={() => toggleQuestion(m, "q_score")}>🔢 Score</button>
+              <button className={`q-chip ${m.q_winner === true ? "on" : ""}`} disabled={hasPreds} onClick={() => toggleQuestion(m, "q_winner")}>🏆 Winner</button>
             </div>
-            <button className="link-btn" onClick={() => applyQuestionsToAll(m)}>apply these questions to all upcoming</button>
+            {hasPreds ? (
+              <p className="field-hint">🔒 Questions are locked — predictions are already in for this match, so changing them would be unfair.</p>
+            ) : (
+              <button className="link-btn" onClick={() => applyQuestionsToAll(m)}>apply these questions to all upcoming</button>
+            )}
             <div className="share-row">
               <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => openResult(m)}>🧮 Enter result</button>
               <button className="mini-btn danger" onClick={() => removeMatch(m)} title="Delete match">✕</button>
@@ -415,7 +477,10 @@ export default function PredictTab({
                         <span className="pred-name">{p.name}</span>
                         {nickFor(p.name) && <span className="pred-nick">“{nickFor(p.name)}”</span>}
                       </span>
-                      <span className="pred-pick">{myPickText(m, p)}</span>
+                      <span className="pred-pick">
+                        {myPickText(m, p)}
+                        {s > 0 && <span className="pred-breakdown">{breakdownText(m, p)}</span>}
+                      </span>
                       <span className={`pred-pts ${s > 0 ? "got" : ""}`}>{s > 0 ? `+${s}` : "0"}</span>
                     </div>
                   ))}
@@ -471,7 +536,7 @@ export default function PredictTab({
                         value={f.none ? "" : f.minute} disabled={f.none}
                         onChange={(e) => setForm(m.id, { minute: e.target.value })} />
                       <button className={`btn ${f.none ? "btn-primary" : "btn-ghost"}`}
-                        onClick={() => setForm(m.id, { none: !f.none, minute: "", home: f.none ? f.home : "0", away: f.none ? f.away : "0" })}>
+                        onClick={() => toggleNoGoals(m.id)}>
                         No goals ✋
                       </button>
                     </div>
@@ -499,8 +564,10 @@ export default function PredictTab({
                     <div className="finish-row">
                       <button className={`btn btn-small ${f.winner === "home" ? "btn-primary" : "btn-ghost"}`}
                         onClick={() => setForm(m.id, { winner: "home" })}>{flagOf(m.home)} {m.home}</button>
-                      <button className={`btn btn-small ${f.winner === "draw" ? "btn-primary" : "btn-ghost"}`}
-                        onClick={() => setForm(m.id, { winner: "draw" })}>🤝 Draw</button>
+                      {!m.is_knockout && (
+                        <button className={`btn btn-small ${f.winner === "draw" ? "btn-primary" : "btn-ghost"}`}
+                          onClick={() => setForm(m.id, { winner: "draw" })}>🤝 Draw</button>
+                      )}
                       <button className={`btn btn-small ${f.winner === "away" ? "btn-primary" : "btn-ghost"}`}
                         onClick={() => setForm(m.id, { winner: "away" })}>{flagOf(m.away)} {m.away}</button>
                     </div>
@@ -563,10 +630,10 @@ export default function PredictTab({
       </button>
       {rulesOpen && (
         <section className="card rules-card">
-          <p className="rule-line">⏱️ <strong>First goal minute:</strong> exact = 3 pts · one minute out = 2 pts</p>
-          <p className="rule-line">🔢 <strong>Exact final score:</strong> 3 pts</p>
-          <p className="rule-line">🏆 <strong>Match winner</strong> (when asked): 2 pts</p>
-          <p className="rule-line">⏳ <strong>Knockouts</strong> — normal/extra time/pens: 1 pt</p>
+          {showFgRule && <p className="rule-line">⏱️ <strong>First goal minute:</strong> exact = 3 pts · one minute out = 2 pts</p>}
+          {showScoreRule && <p className="rule-line">🔢 <strong>Exact final score:</strong> 3 pts</p>}
+          {showWinnerRule && <p className="rule-line">🏆 <strong>Match winner</strong> (when asked): 2 pts</p>}
+          {showKoRule && <p className="rule-line">⏳ <strong>Knockouts</strong> — normal/extra time/pens: 1 pt</p>}
           <p className="rule-line">🔒 Predictions lock at kickoff. One shot, no changes. Picks hidden until kickoff, then everyone's are revealed.</p>
         </section>
       )}

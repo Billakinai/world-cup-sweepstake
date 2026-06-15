@@ -977,6 +977,7 @@ body {
 .pred-row.me { border: 1.5px solid var(--magenta); background: #fff0f5; }
 .pred-name { font-weight: 800; font-size: 13px; color: var(--ink); flex: none; max-width: 38%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pred-pick { flex: 1; font-size: 12.5px; color: #5f5880; text-align: right; }
+.pred-breakdown { display: block; margin-top: 2px; font-size: 11px; font-weight: 700; color: #0d9e54; }
 .pred-pts { flex: none; font-weight: 800; font-size: 13.5px; color: #9b94b8; min-width: 28px; text-align: right; }
 .pred-pts.got { color: var(--mint, #19d97c); }
 
@@ -1039,6 +1040,7 @@ select.input { appearance: auto; }
   background: #fff; color: #9b94b8;
 }
 .q-chip.on { background: var(--violet); border-color: var(--violet); color: #fff; }
+.q-chip:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .last-card { border: 3px solid var(--magenta); }
 .last-score-row { display: flex; align-items: center; justify-content: center; gap: 16px; }

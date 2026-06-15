@@ -52,23 +52,40 @@ export function flagOf(team) {
  */
 export function matchWinner(match) {
   if (match.result_home == null || match.result_away == null) return null;
-  if (Number(match.result_home) > Number(match.result_away)) return "home";
-  if (Number(match.result_home) < Number(match.result_away)) return "away";
+  const h = Number(match.result_home);
+  const a = Number(match.result_away);
+  if (h > a) return "home";
+  if (h < a) return "away";
+  // Scores level. A knockout can't end drawn — it was settled in extra time or
+  // on penalties — so use the side the admin recorded as going through. Group
+  // games genuinely can be draws.
+  if (match.is_knockout && (match.winner_side === "home" || match.winner_side === "away")) {
+    return match.winner_side;
+  }
   return "draw";
 }
 
-export function scorePrediction(match, pred) {
-  if (!match || !pred || match.status !== "scored") return 0;
-  let pts = 0;
+/**
+ * Itemised points for one prediction → [{ label, pts }], only the parts that
+ * actually scored. This is the single source of truth: scorePrediction simply
+ * sums it, and the UI shows the same parts, so a row's breakdown can never
+ * disagree with its total. Each part is gated by its own question flag, so a
+ * question turned off contributes nothing.
+ */
+export function scoreBreakdown(match, pred) {
+  const parts = [];
+  if (!match || !pred || match.status !== "scored") return parts;
+
   if (match.q_fg !== false) {
     if (match.fg_none) {
-      if (pred.fg_none) pts += 3;
+      if (pred.fg_none) parts.push({ label: "1st goal", pts: 3 });
     } else if (!pred.fg_none && pred.fg_minute != null && match.fg_minute != null) {
       const diff = Math.abs(Number(pred.fg_minute) - Number(match.fg_minute));
-      if (diff === 0) pts += 3;
-      else if (diff === 1) pts += 2;
+      if (diff === 0) parts.push({ label: "1st goal", pts: 3 });
+      else if (diff === 1) parts.push({ label: "1st goal", pts: 2 });
     }
   }
+
   if (
     match.q_score !== false &&
     pred.home != null &&
@@ -76,15 +93,22 @@ export function scorePrediction(match, pred) {
     Number(pred.home) === Number(match.result_home) &&
     Number(pred.away) === Number(match.result_away)
   ) {
-    pts += 3;
+    parts.push({ label: "score", pts: 3 });
   }
+
   if (match.q_winner === true && pred.winner && pred.winner === matchWinner(match)) {
-    pts += 2;
+    parts.push({ label: "winner", pts: 2 });
   }
+
   if (match.is_knockout && match.finish_type && pred.finish_type === match.finish_type) {
-    pts += 1;
+    parts.push({ label: "finish", pts: 1 });
   }
-  return pts;
+
+  return parts;
+}
+
+export function scorePrediction(match, pred) {
+  return scoreBreakdown(match, pred).reduce((sum, part) => sum + part.pts, 0);
 }
 
 /** Overall totals across all scored matches → sorted [{name, points, played}] */

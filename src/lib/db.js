@@ -317,7 +317,7 @@ export async function addMatch(sweepstakeId, { home, away, kickoff_at, is_knocko
   const db = ensureGameTables(localDb());
   const full = {
     id: uid(), ...row, result_home: null, result_away: null, fg_minute: null,
-    fg_none: false, finish_type: null, status: "upcoming", created_at: new Date().toISOString(),
+    fg_none: false, finish_type: null, winner_side: null, status: "upcoming", created_at: new Date().toISOString(),
   };
   db.matches.push(full);
   saveLocal(db);
