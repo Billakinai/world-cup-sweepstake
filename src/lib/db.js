@@ -91,15 +91,17 @@ export async function listParticipants(sweepstakeId) {
     .sort((a, b) => a.created_at.localeCompare(b.created_at));
 }
 
-export async function addParticipant(sweepstakeId, name, nickname, role = "player") {
+export async function addParticipant(sweepstakeId, name, nickname, role = "player", bonus = 0) {
+  const bonus_points = Number(bonus) || 0;
   if (hasSupabase) {
     const { data, error } = await supabase
       .from("participants")
-      .insert({ sweepstake_id: sweepstakeId, name, nickname: nickname || null, role })
+      .insert({ sweepstake_id: sweepstakeId, name, nickname: nickname || null, role, bonus_points })
       .select()
       .single();
     if (!error) return data;
-    // If the role column doesn't exist yet, retry without it so joining never breaks.
+    // If newer columns (role / bonus_points) don't exist yet, retry with the
+    // basics so joining never breaks.
     const retry = await supabase
       .from("participants")
       .insert({ sweepstake_id: sweepstakeId, name, nickname: nickname || null })
@@ -115,11 +117,35 @@ export async function addParticipant(sweepstakeId, name, nickname, role = "playe
     name,
     nickname: nickname || null,
     role,
+    bonus_points,
     created_at: new Date().toISOString(),
   };
   db.participants.push(row);
   saveLocal(db);
   return row;
+}
+
+/** Admin: set a player's starting/carry-over points (added on top of points
+ *  earned from predictions). Used to seed an existing leaderboard. */
+export async function setParticipantBonus(participantId, bonus) {
+  const bonus_points = Number(bonus) || 0;
+  if (hasSupabase) {
+    const { data, error } = await supabase
+      .from("participants")
+      .update({ bonus_points })
+      .eq("id", participantId)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }
+  const db = localDb();
+  const p = db.participants.find((x) => x.id === participantId);
+  if (p) {
+    p.bonus_points = bonus_points;
+    saveLocal(db);
+  }
+  return p || null;
 }
 
 export async function listResults(sweepstakeId) {

@@ -927,6 +927,9 @@ export default function RoomPage({ id }) {
           matches={matches}
           predictions={predictions}
           joinedName={joinedName}
+          isAdmin={adminUnlocked}
+          sweepstakeId={id}
+          refresh={refresh}
         />
       )}
 
