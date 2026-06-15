@@ -2,17 +2,21 @@ import { useMemo, useState } from "react";
 import { flagOf, scorePrediction, buildLeaderboard } from "../lib/predict";
 import { setParticipantBonus, addParticipant } from "../lib/db";
 
+// Flip to true ONLY when you need to set/fix starting scores, then back to false.
+// When true it still shows to the admin only.
+const SHOW_STARTING_SCORES = false;
+
 const STARTING_SCORES_SEED = `Zak 6
-Farhaan 10
-Tahaira 12
-Naz 9
+Farhaan 8
+Tahaira 6
+Naz 4
 Moona 6
-B REHMAN 10
-Kash 8
-Tahreem 8
+B REHMAN 8
+Kash 6
+Tahreem 6
 Zish 4
-Big J 7
-Sadiya 7
+Big J 4
+Sadiya 4
 Safiya 6
 Inaaya 2
 Aadam 4
@@ -38,7 +42,7 @@ function parseStartingScores(text) {
     const m = line.match(/(\d+)\s*(?:pts?\.?)?\s*$/i);
     if (!m) continue;
     const bonus = parseInt(m[1], 10);
-    let name = line
+    const name = line
       .slice(0, m.index)
       .replace(/^[\s\d.)🥇🥈🥉]+/u, "")
       .replace(/[—–\-:]+\s*$/, "")
@@ -143,16 +147,15 @@ export default function BoardTab({
           await setParticipantBonus(existing.id, bonus);
           updated += 1;
         } else {
-          // New names join as spectators ("stand") so they never affect the wheel draw.
           // eslint-disable-next-line no-await-in-loop
           await addParticipant(sweepstakeId, name, null, "stand", bonus);
           added += 1;
         }
       }
-      setSeedMsg(`Done — ${updated} updated, ${added} added. Starting scores are live for everyone.`);
+      setSeedMsg(`Done — ${updated} updated, ${added} added.`);
       refresh();
     } catch {
-      setSeedMsg("Couldn't save — your database probably needs the one-time update first (ask for the SQL line).");
+      setSeedMsg("Couldn't save — the database may need the bonus_points column first.");
     } finally {
       setSeedBusy(false);
     }
@@ -226,8 +229,8 @@ export default function BoardTab({
         <p className="field-hint center">Updates live on every phone the second a result is entered.</p>
       </section>
 
-      {/* Admin: seed an existing leaderboard. Future match points add on top. */}
-      {isAdmin && (
+      {/* Hidden by default. Set SHOW_STARTING_SCORES = true (top of file) to use; admin only. */}
+      {SHOW_STARTING_SCORES && isAdmin && (
         <section className="card">
           <button className="link-btn" onClick={() => setSeedOpen((o) => !o)}>
             {seedOpen ? "▾" : "▸"} ⚙️ Set starting scores
@@ -235,9 +238,8 @@ export default function BoardTab({
           {seedOpen && (
             <>
               <p className="field-hint">
-                One person per line: name then their current points (e.g. “Zak 13”). Names already in the
-                room get updated; new names are added as spectators. Points you score from future matches
-                add on top automatically.
+                One person per line: name then points (e.g. “Zak 13”). Existing names get updated; new
+                names are added. Future match points add on top automatically.
               </p>
               <textarea
                 className="input textarea"
