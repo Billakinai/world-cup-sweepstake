@@ -105,7 +105,7 @@ export default function PredictTab({
   const noMatches = matches.length === 0;
   const showFgRule = noMatches || scope.some((m) => m.q_fg !== false);
   const showScoreRule = noMatches || scope.some((m) => m.q_score !== false);
-  const showWinnerRule = noMatches || scope.some((m) => m.q_winner === true);
+  const showWinnerRule = true;
   const showKoRule = !noMatches && scope.some((m) => m.is_knockout);
 
   function form(mid) {
@@ -126,6 +126,24 @@ export default function PredictTab({
     }
   }
 
+  /**
+   * What the typed score forces the winner to be — stops anyone predicting
+   * e.g. "3-1" and then picking the other team. Returns "home" / "away" /
+   * "draw" when the score settles it, or "" when the player still chooses
+   * (a level knockout that goes to extra-time/pens, or no score entered yet).
+   * Form-only: doesn't touch saved predictions or how anything is scored.
+   */
+  function forcedWinner(m, f) {
+    if (m.q_score === false) return "";               // no score question → free pick
+    if (f.none) return m.is_knockout ? "" : "draw";   // 0-0: group = draw, KO went to pens
+    if (f.home === "" || f.away === "") return "";    // score not entered yet
+    const h = Number(f.home), a = Number(f.away);
+    if (Number.isNaN(h) || Number.isNaN(a)) return "";
+    if (h > a) return "home";
+    if (a > h) return "away";
+    return m.is_knockout ? "" : "draw";               // level: group = draw, KO = free (pens)
+  }
+
   /** "1st goal +3 · score +3" — only the parts that actually scored. */
   const breakdownText = (m, p) =>
     scoreBreakdown(m, p).map((x) => `${x.label} +${x.pts}`).join(" · ");
@@ -137,14 +155,15 @@ export default function PredictTab({
     const errs = {};
     const askFg = m.q_fg !== false;
     const askScore = m.q_score !== false;
-    const askWinner = m.q_winner === true;
+    const askWinner = true;
+    const effWinner = forcedWinner(m, f) || f.winner; // score decides it, else their pick
     if (askFg && !f.none && (f.minute === "" || Number(f.minute) < 0 || Number(f.minute) > 130)) {
       errs[m.id] = "Enter the first-goal minute (or tap No goals).";
     } else if (askScore && (f.home === "" || f.away === "" || Number(f.home) < 0 || Number(f.away) < 0)) {
       errs[m.id] = "Enter the final score.";
     } else if (askScore && f.none && (Number(f.home) !== 0 || Number(f.away) !== 0)) {
       errs[m.id] = "No goals means the score must be 0-0!";
-    } else if (askWinner && !f.winner) {
+    } else if (askWinner && !effWinner) {
       errs[m.id] = "Pick who wins (or draw).";
     } else if (m.is_knockout && !f.finish) {
       errs[m.id] = "Pick how the match ends.";
@@ -154,7 +173,7 @@ export default function PredictTab({
     const bits = [];
     if (askFg) bits.push(f.none ? "No goals" : `First goal ${f.minute}'`);
     if (askScore) bits.push(`${m.home} ${f.home}-${f.away} ${m.away}`);
-    if (askWinner) bits.push(f.winner === "draw" ? "Draw" : `${f.winner === "home" ? m.home : m.away} to win`);
+    if (askWinner) bits.push(effWinner === "draw" ? "Draw" : `${effWinner === "home" ? m.home : m.away} to win`);
     if (!window.confirm(`Lock it in? No changes once it's in!\n\n${bits.join(" · ")}`)) return;
     setBusy(true);
     try {
@@ -163,7 +182,7 @@ export default function PredictTab({
         fg_none: askFg ? f.none : false,
         home: askScore && f.home !== "" ? Number(f.home) : 0,
         away: askScore && f.away !== "" ? Number(f.away) : 0,
-        winner: askWinner ? f.winner : null,
+        winner: askWinner ? effWinner : null,
         finish_type: m.is_knockout ? f.finish : null,
       });
       setExpandedId(null);
@@ -219,36 +238,6 @@ export default function PredictTab({
       refresh();
     } catch {
       setAddErr("Couldn't add the match — try again.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function toggleQuestion(m, key) {
-    await updateMatch(m.id, { [key]: !(key === "q_winner" ? m.q_winner === true : m[key] !== false) });
-    refresh();
-  }
-
-  async function applyQuestionsToAll(m) {
-    const targets = upcoming.filter(
-      (x) => x.id !== m.id && !predictions.some((p) => p.match_id === x.id)
-    );
-    if (targets.length === 0) {
-      window.alert("No other upcoming matches to update — the rest either have predictions in already or there aren't any.");
-      return;
-    }
-    if (!window.confirm(`Use this match's questions for ${targets.length} other upcoming match${targets.length === 1 ? "" : "es"}? (Any match that already has predictions is left untouched.)`)) return;
-    setBusy(true);
-    try {
-      for (const x of targets) {
-        // eslint-disable-next-line no-await-in-loop
-        await updateMatch(x.id, {
-          q_fg: m.q_fg !== false,
-          q_score: m.q_score !== false,
-          q_winner: m.q_winner === true,
-        });
-      }
-      refresh();
     } finally {
       setBusy(false);
     }
@@ -339,7 +328,7 @@ export default function PredictTab({
     const bits = [];
     if (m.q_fg !== false) bits.push(p.fg_none ? "No goals (0-0)" : `First goal ${p.fg_minute}'`);
     if (m.q_score !== false) bits.push(`${p.home}-${p.away}`);
-    if (m.q_winner === true && p.winner)
+    if (p.winner)
       bits.push(p.winner === "draw" ? "Draw" : `${p.winner === "home" ? m.home : m.away} to win`);
     if (m.is_knockout && p.finish_type) bits.push(FINISH_LABELS[p.finish_type]);
     return bits.join(" · ");
@@ -347,7 +336,6 @@ export default function PredictTab({
 
   function renderAdminTools(m) {
     if (!isAdmin || m.status === "scored") return null;
-    const hasPreds = predictions.some((p) => p.match_id === m.id);
     return (
       <div className="admin-match-row">
         {resultFor === m.id ? (
@@ -398,23 +386,10 @@ export default function PredictTab({
             </div>
           </div>
         ) : (
-          <>
-            <div className="q-toggle-row">
-              <span className="q-toggle-label">Questions:</span>
-              <button className={`q-chip ${m.q_fg !== false ? "on" : ""}`} disabled={hasPreds} onClick={() => toggleQuestion(m, "q_fg")}>⏱️ 1st goal</button>
-              <button className={`q-chip ${m.q_score !== false ? "on" : ""}`} disabled={hasPreds} onClick={() => toggleQuestion(m, "q_score")}>🔢 Score</button>
-              <button className={`q-chip ${m.q_winner === true ? "on" : ""}`} disabled={hasPreds} onClick={() => toggleQuestion(m, "q_winner")}>🏆 Winner</button>
-            </div>
-            {hasPreds ? (
-              <p className="field-hint">🔒 Questions are locked — predictions are already in for this match, so changing them would be unfair.</p>
-            ) : (
-              <button className="link-btn" onClick={() => applyQuestionsToAll(m)}>apply these questions to all upcoming</button>
-            )}
-            <div className="share-row">
-              <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => openResult(m)}>🧮 Enter result</button>
-              <button className="mini-btn danger" onClick={() => removeMatch(m)} title="Delete match">✕</button>
-            </div>
-          </>
+          <div className="share-row">
+            <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => openResult(m)}>🧮 Enter result</button>
+            <button className="mini-btn danger" onClick={() => removeMatch(m)} title="Delete match">✕</button>
+          </div>
         )}
       </div>
     );
@@ -428,7 +403,9 @@ export default function PredictTab({
     const owners = ownershipLine(m);
     const askFg = m.q_fg !== false;
     const askScore = m.q_score !== false;
-    const askWinner = m.q_winner === true;
+    const askWinner = true;
+    const fw = forcedWinner(m, f);   // winner the score locks in ("" = player still chooses)
+    const effWinner = fw || f.winner;
 
     return (
       <section className={`card match-card ${big ? "hero-match" : ""} ${m.status === "scored" ? "done" : ""}`} key={m.id}>
@@ -562,15 +539,19 @@ export default function PredictTab({
                   <>
                     <span className="q-label">🏆 Who wins?</span>
                     <div className="finish-row">
-                      <button className={`btn btn-small ${f.winner === "home" ? "btn-primary" : "btn-ghost"}`}
-                        onClick={() => setForm(m.id, { winner: "home" })}>{flagOf(m.home)} {m.home}</button>
+                      <button className={`btn btn-small ${effWinner === "home" ? "btn-primary" : "btn-ghost"}`}
+                        disabled={!!fw && fw !== "home"}
+                        onClick={() => { if (!fw) setForm(m.id, { winner: "home" }); }}>{flagOf(m.home)} {m.home}</button>
                       {!m.is_knockout && (
-                        <button className={`btn btn-small ${f.winner === "draw" ? "btn-primary" : "btn-ghost"}`}
-                          onClick={() => setForm(m.id, { winner: "draw" })}>🤝 Draw</button>
+                        <button className={`btn btn-small ${effWinner === "draw" ? "btn-primary" : "btn-ghost"}`}
+                          disabled={!!fw && fw !== "draw"}
+                          onClick={() => { if (!fw) setForm(m.id, { winner: "draw" }); }}>🤝 Draw</button>
                       )}
-                      <button className={`btn btn-small ${f.winner === "away" ? "btn-primary" : "btn-ghost"}`}
-                        onClick={() => setForm(m.id, { winner: "away" })}>{flagOf(m.away)} {m.away}</button>
+                      <button className={`btn btn-small ${effWinner === "away" ? "btn-primary" : "btn-ghost"}`}
+                        disabled={!!fw && fw !== "away"}
+                        onClick={() => { if (!fw) setForm(m.id, { winner: "away" }); }}>{flagOf(m.away)} {m.away}</button>
                     </div>
+                    {fw && <span className="field-hint">🔒 Winner follows your score — change the score to change this.</span>}
                   </>
                 )}
                 {m.is_knockout && (

@@ -96,7 +96,7 @@ export function scoreBreakdown(match, pred) {
     parts.push({ label: "score", pts: 3 });
   }
 
-  if (match.q_winner === true && pred.winner && pred.winner === matchWinner(match)) {
+  if (pred.winner && pred.winner === matchWinner(match)) {
     parts.push({ label: "winner", pts: 2 });
   }
 
