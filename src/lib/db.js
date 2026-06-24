@@ -376,12 +376,28 @@ export async function deleteMatch(matchId) {
 
 export async function listPredictions(sweepstakeId) {
   if (hasSupabase) {
-    const { data, error } = await supabase
-      .from("predictions")
-      .select("*")
-      .eq("sweepstake_id", sweepstakeId);
-    if (error) throw error;
-    return data || [];
+    // Supabase returns at most ~1000 rows per request. Once the sweepstake has
+    // more predictions than that, a plain select silently drops the rest, so
+    // people's saved picks stop showing and they re-submit (and hit the unique
+    // constraint). Page through in 1000-row batches to load every row.
+    const pageSize = 1000;
+    let all = [];
+    let from = 0;
+    for (;;) {
+      const { data, error } = await supabase
+        .from("predictions")
+        .select("*")
+        .eq("sweepstake_id", sweepstakeId)
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, from + pageSize - 1);
+      if (error) throw error;
+      const batch = data || [];
+      all = all.concat(batch);
+      if (batch.length < pageSize) break;
+      from += pageSize;
+    }
+    return all;
   }
   const db = ensureGameTables(localDb());
   return db.predictions.filter((p) => p.sweepstake_id === sweepstakeId);
