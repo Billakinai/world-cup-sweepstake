@@ -13,6 +13,31 @@ import {
 } from "../lib/predict";
 import { addMatch, updateMatch, deleteMatch, addPrediction } from "../lib/db";
 import { WC_FIXTURES } from "../lib/fixtures";
+import Flag from "./Flag";
+
+const shareSvg = (
+  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
+    strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 14V4" />
+    <path d="m8.5 7.5 3.5-3.5 3.5 3.5" />
+    <path d="M5 12v6.5a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5V12" />
+  </svg>
+);
+
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand("copy");
+    ta.remove();
+    return ok;
+  }
+}
 
 function fmtShort(iso) {
   return new Date(iso).toLocaleString(undefined, { weekday: "short", hour: "2-digit", minute: "2-digit" });
@@ -56,8 +81,24 @@ export default function PredictTab({
   const [rFinish, setRFinish] = useState("normal");
   const [rWinner, setRWinner] = useState("");
   const [resErr, setResErr] = useState("");
+  const [matchShared, setMatchShared] = useState(false);
 
   const isAdmin = adminUnlocked && panelOpen;
+
+  async function shareMatch(m) {
+    const roomLink = `${window.location.origin}${window.location.pathname}#/room/${sweepstake.id}`;
+    const minePred = predictions.find(
+      (p) => p.match_id === m.id && p.name.toLowerCase() === (joinedName || "").toLowerCase()
+    );
+    const line =
+      `🔮 Next up: ${m.home} v ${m.away} — ${fmtKickoff(m.kickoff_at)}.` +
+      (minePred ? " I've locked mine in 👀." : "") +
+      ` Predict yours 👉 ${roomLink}`;
+    if (await copyText(line)) {
+      setMatchShared(true);
+      setTimeout(() => setMatchShared(false), 2000);
+    }
+  }
 
   const teams = useMemo(() => {
     const all = [...(sweepstake.big_teams || []), ...(sweepstake.lesser_teams || [])];
@@ -381,10 +422,10 @@ export default function PredictTab({
                 <span className="field-label">Who went through? <span className="optional">— extra time / pens</span></span>
                 <div className="finish-row">
                   <button className={`btn btn-small ${rWinner === "home" ? "btn-primary" : "btn-ghost"}`} onClick={() => setRWinner("home")}>
-                    {flagOf(m.home)} {m.home}
+                    <Flag team={m.home} size={18} /> {m.home}
                   </button>
                   <button className={`btn btn-small ${rWinner === "away" ? "btn-primary" : "btn-ghost"}`} onClick={() => setRWinner("away")}>
-                    {flagOf(m.away)} {m.away}
+                    <Flag team={m.away} size={18} /> {m.away}
                   </button>
                 </div>
               </>
@@ -421,12 +462,18 @@ export default function PredictTab({
 
     return (
       <section className={`card match-card ${big ? "hero-match" : ""} ${m.status === "scored" ? "done" : ""} ${m.is_knockout ? "ko-match" : ""}`} key={m.id}>
+        {big && !off && m.status !== "scored" && (
+          <>
+            {matchShared && <span className="hero-share-flash">Copied ✓</span>}
+            <button className="share-mini hero-share-btn" onClick={() => shareMatch(m)} title="Share this match to the group">{shareSvg}</button>
+          </>
+        )}
         {big && !off && m.status !== "scored" && <p className="next-kicker">⚡ NEXT MATCH</p>}
         {m.is_knockout && (() => { const r = knockoutRound(m.kickoff_at); return r ? <p className="ko-banner">{r.emoji} {r.label}</p> : <p className="ko-banner">⚔️ KNOCKOUT</p>; })()}
         {isMine(m) && m.status !== "scored" && <p className="mine-banner">🔥 Your team is playing!</p>}
         <div className="match-head">
           <div className="match-team">
-            <span className={`match-flag ${big ? "xl" : ""}`}>{flagOf(m.home)}</span>
+            <span className={`match-flag ${big ? "xl" : ""}`}><Flag team={m.home} size={big ? 48 : 40} /></span>
             <span className="match-name">{m.home}</span>
           </div>
           <div className="match-mid">
@@ -437,7 +484,7 @@ export default function PredictTab({
             )}
           </div>
           <div className="match-team">
-            <span className={`match-flag ${big ? "xl" : ""}`}>{flagOf(m.away)}</span>
+            <span className={`match-flag ${big ? "xl" : ""}`}><Flag team={m.away} size={big ? 48 : 40} /></span>
             <span className="match-name">{m.away}</span>
           </div>
         </div>
@@ -536,7 +583,7 @@ export default function PredictTab({
                   <>
                     <span className="q-label">🔢 Final score?</span>
                     <div className="score-row">
-                      <span className="score-team">{flagOf(m.home)} {m.home}</span>
+                      <span className="score-team"><Flag team={m.home} size={20} /> {m.home}</span>
                       <input className="input score-in" type="number" inputMode="numeric" min="0" max="20"
                         value={f.home} disabled={f.none}
                         onChange={(e) => setForm(m.id, { home: e.target.value })} />
@@ -544,7 +591,7 @@ export default function PredictTab({
                       <input className="input score-in" type="number" inputMode="numeric" min="0" max="20"
                         value={f.away} disabled={f.none}
                         onChange={(e) => setForm(m.id, { away: e.target.value })} />
-                      <span className="score-team right">{m.away} {flagOf(m.away)}</span>
+                      <span className="score-team right">{m.away} <Flag team={m.away} size={20} /></span>
                     </div>
                   </>
                 )}
@@ -554,7 +601,7 @@ export default function PredictTab({
                     <div className="finish-row">
                       <button className={`btn btn-small ${effWinner === "home" ? "btn-primary" : "btn-ghost"}`}
                         disabled={!!fw && fw !== "home"}
-                        onClick={() => { if (!fw) setForm(m.id, { winner: "home" }); }}>{flagOf(m.home)} {m.home}</button>
+                        onClick={() => { if (!fw) setForm(m.id, { winner: "home" }); }}><Flag team={m.home} size={18} /> {m.home}</button>
                       {!m.is_knockout && (
                         <button className={`btn btn-small ${effWinner === "draw" ? "btn-primary" : "btn-ghost"}`}
                           disabled={!!fw && fw !== "draw"}
@@ -562,7 +609,7 @@ export default function PredictTab({
                       )}
                       <button className={`btn btn-small ${effWinner === "away" ? "btn-primary" : "btn-ghost"}`}
                         disabled={!!fw && fw !== "away"}
-                        onClick={() => { if (!fw) setForm(m.id, { winner: "away" }); }}>{flagOf(m.away)} {m.away}</button>
+                        onClick={() => { if (!fw) setForm(m.id, { winner: "away" }); }}><Flag team={m.away} size={18} /> {m.away}</button>
                     </div>
                     {fw && <span className="field-hint">🔒 Winner follows your score — change the score to change this.</span>}
                   </>
@@ -601,7 +648,7 @@ export default function PredictTab({
     return (
       <div key={m.id}>
         <button className="sched-row" onClick={() => setExpandedId(expanded ? null : m.id)}>
-          <span className="sched-flags">{flagOf(m.home)} <span className="sched-vs">v</span> {flagOf(m.away)}</span>
+          <span className="sched-flags"><Flag team={m.home} size={22} /> <span className="sched-vs">v</span> <Flag team={m.away} size={22} /></span>
           <span className="sched-names">{m.home} v {m.away}</span>
           <span className="sched-meta">
             {isMine(m) && <span className="sched-chip fire">🔥</span>}

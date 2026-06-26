@@ -7,6 +7,7 @@ import { spinTicks, cheer } from "../lib/sound";
 import { HYPE_LINES, CHIP_COLORS, pickNickname, parseTeams, pickFunLine } from "../lib/draw";
 import PredictTab from "../components/PredictTab";
 import BoardTab from "../components/BoardTab";
+import FullTimeRecap from "../components/FullTimeRecap";
 import { kickedOff } from "../lib/predict";
 import {
   getSweepstake,
@@ -55,6 +56,7 @@ export default function RoomPage({ id }) {
   const [matches, setMatches] = useState([]);
   const [predictions, setPredictions] = useState([]);
   const [tab, setTab] = useState("predict");
+  const [recapMatchId, setRecapMatchId] = useState(null);
 
   // Joining
   const [joinedName, setJoinedName] = useState(localStorage.getItem(`fwcs-me-${id}`) || "");
@@ -201,7 +203,10 @@ export default function RoomPage({ id }) {
   // Auto-jump everyone to the Wheels tab the moment the draw goes live
   useEffect(() => {
     const live = Boolean(ds);
-    if (live && !wasLiveRef.current) setTab("wheels");
+    if (live && !wasLiveRef.current) {
+      setTab("wheels");
+      setRecapMatchId(null);
+    }
     wasLiveRef.current = live;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [Boolean(ds)]);
@@ -930,24 +935,65 @@ export default function RoomPage({ id }) {
           isAdmin={adminUnlocked}
           sweepstakeId={id}
           refresh={refresh}
+          onOpenRecap={(m) => m && setRecapMatchId(m.id)}
         />
       )}
 
+      {/* Full-Time Recap overlay (read-only, opened from the Board tab) */}
+      {recapMatchId &&
+        (() => {
+          const rm = matches.find((m) => m.id === recapMatchId && m.status === "scored");
+          return rm ? (
+            <FullTimeRecap
+              match={rm}
+              predictions={predictions}
+              participants={everyone}
+              joinedName={joinedName}
+              onClose={() => setRecapMatchId(null)}
+            />
+          ) : null;
+        })()}
+
       {/* Bottom tab bar */}
       <nav className="tabbar">
-        <button className={`tabbtn ${tab === "predict" ? "on" : ""}`} onClick={() => setTab("predict")}>
-          <span className="tabicon">🔮</span>Predict
+        <button className={`tabbtn ${tab === "predict" ? "on" : ""}`} onClick={() => { setTab("predict"); setRecapMatchId(null); }}>
+          <span className="tabicon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="8.5" />
+              <circle cx="12" cy="12" r="4.3" />
+              <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none" />
+            </svg>
+          </span>Predict
           {needsMyPrediction && <span className="tab-dot" />}
         </button>
-        <button className={`tabbtn ${tab === "board" ? "on" : ""}`} onClick={() => setTab("board")}>
-          <span className="tabicon">🏆</span>Board
+        <button className={`tabbtn ${tab === "board" ? "on" : ""}`} onClick={() => { setTab("board"); setRecapMatchId(null); }}>
+          <span className="tabicon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M7 4h10v3.5a5 5 0 0 1-10 0V4Z" />
+              <path d="M7 5.2H4.6V6.6A2.8 2.8 0 0 0 7 9.3" />
+              <path d="M17 5.2h2.4V6.6A2.8 2.8 0 0 1 17 9.3" />
+              <path d="M9.7 13.6 9.2 17h5.6l-.5-3.4" />
+              <path d="M8.2 20h7.6" />
+            </svg>
+          </span>Board
         </button>
-        <button className={`tabbtn ${tab === "room" ? "on" : ""}`} onClick={() => setTab("room")}>
-          <span className="tabicon">🏠</span>Room
+        <button className={`tabbtn ${tab === "room" ? "on" : ""}`} onClick={() => { setTab("room"); setRecapMatchId(null); }}>
+          <span className="tabicon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 10.8 12 3l9 7.8" />
+              <path d="M5.6 9.4V20h12.8V9.4" />
+            </svg>
+          </span>Room
         </button>
         {!isComplete && (
-          <button className={`tabbtn ${tab === "wheels" ? "on" : ""}`} onClick={() => setTab("wheels")}>
-            <span className="tabicon">🎡</span>Wheels
+          <button className={`tabbtn ${tab === "wheels" ? "on" : ""}`} onClick={() => { setTab("wheels"); setRecapMatchId(null); }}>
+            <span className="tabicon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="9" />
+                <circle cx="12" cy="12" r="2" />
+                <path d="M12 3v4M12 17v4M3 12h4M17 12h4" />
+              </svg>
+            </span>Wheels
             {(liveShow || showCountdown) && <span className="tab-dot" />}
           </button>
         )}

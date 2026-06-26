@@ -1,6 +1,16 @@
 import { useMemo, useState } from "react";
-import { flagOf, scorePrediction, buildLeaderboard } from "../lib/predict";
+import { scorePrediction, buildLeaderboard } from "../lib/predict";
 import { setParticipantBonus, addParticipant } from "../lib/db";
+import Flag from "./Flag";
+
+const shareSvg = (
+  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor"
+    strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 14V4" />
+    <path d="m8.5 7.5 3.5-3.5 3.5 3.5" />
+    <path d="M5 12v6.5a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5V12" />
+  </svg>
+);
 
 // Flip to true ONLY when you need to set/fix starting scores, then back to false.
 // When true it still shows to the admin only.
@@ -69,6 +79,7 @@ export default function BoardTab({
   isAdmin = false,
   sweepstakeId,
   refresh = () => {},
+  onOpenRecap = () => {},
 }) {
   const [copied, setCopied] = useState(false);
   const [seedOpen, setSeedOpen] = useState(false);
@@ -168,9 +179,9 @@ export default function BoardTab({
         <section className="card last-card">
           <span className="field-label">🔥 Last match</span>
           <div className="last-score-row">
-            <span className="last-flag">{flagOf(lastMatch.home)}</span>
+            <span className="last-flag"><Flag team={lastMatch.home} size={34} /></span>
             <span className="last-score">{lastMatch.result_home}–{lastMatch.result_away}</span>
-            <span className="last-flag">{flagOf(lastMatch.away)}</span>
+            <span className="last-flag"><Flag team={lastMatch.away} size={34} /></span>
           </div>
           <p className="field-hint center">
             {lastMatch.home} v {lastMatch.away}
@@ -196,6 +207,9 @@ export default function BoardTab({
           ) : (
             <p className="muted empty-state">Nobody scored on that one 😅</p>
           )}
+          <button className="recap-open-btn" onClick={() => onOpenRecap(lastMatch)}>
+            📣 See the full-time recap →
+          </button>
         </section>
       ) : (
         <section className="card center-card">
@@ -208,7 +222,7 @@ export default function BoardTab({
       <section className="card">
         <div className="players-head">
           <span className="field-label">🏆 Overall standings</span>
-          <button className="link-btn" onClick={copyBoard}>{copied ? "copied ✓" : "📋 copy"}</button>
+          <button className="share-pill" onClick={copyBoard}>{shareSvg}{copied ? "Copied ✓" : "Share"}</button>
         </div>
         {board.length === 0 ? (
           <p className="muted empty-state">Join on the 🏠 Room tab to get on the board!</p>
