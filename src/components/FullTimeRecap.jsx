@@ -126,7 +126,7 @@ export default function FullTimeRecap({ match, predictions = [], participants = 
         {/* GAINED / GOT COOKED */}
         <section className="recap-points-card">
           <div className="recap-col">
-            <span className="recap-gained-label">Gained</span>
+            <span className="recap-gained-label">🎯 Gained</span>
             {gained.length ? (
               gained.map((r, i) => (
                 <div className={`recap-gain-row ${i === 0 ? "top" : ""}`} key={r.p.id}>
@@ -150,7 +150,7 @@ export default function FullTimeRecap({ match, predictions = [], participants = 
           <div className="recap-divider" />
 
           <div className="recap-col">
-            <span className="recap-cooked-label">Got cooked 💀</span>
+            <span className="recap-cooked-label">💀 Got cooked</span>
             {cooked.length ? (
               <>
                 <div className="recap-cooked-wrap">

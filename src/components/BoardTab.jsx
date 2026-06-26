@@ -125,12 +125,15 @@ export default function BoardTab({
   const bestLast = lastScores.length && lastScores[0].s > 0 ? lastScores[0].s : 0;
   const lastWinners = lastScores.filter((x) => x.s > 0);
 
-  const medal = (i) => (i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}`);
+  // Rank badge: medals for the podium, then a medal ribbon for 4th/5th, numbers after.
+  const rankBadge = (i) =>
+    i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : i === 3 ? "🏅" : i === 4 ? "🎖️" : `${i + 1}`;
 
   async function copyBoard() {
     const lines = board.map((r, i) => {
       const nick = nickFor(r.name);
-      return `${i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}.`} ${r.name}${nick ? ` “${nick}”` : ""} — ${r.points} pts`;
+      const badge = i <= 4 ? rankBadge(i) : `${i + 1}.`;
+      return `${badge} ${r.name}${nick ? ` “${nick}”` : ""} — ${r.points} pts`;
     });
     if (await copyText(`🏆 Predictions leaderboard\n${lines.join("\n")}`)) {
       setCopied(true);
@@ -177,31 +180,28 @@ export default function BoardTab({
       {/* Last match spotlight */}
       {lastMatch ? (
         <section className="card last-card">
-          <span className="field-label">🔥 Last match</span>
-          <div className="last-score-row">
-            <span className="last-flag"><Flag team={lastMatch.home} size={34} /></span>
-            <span className="last-score">{lastMatch.result_home}–{lastMatch.result_away}</span>
-            <span className="last-flag"><Flag team={lastMatch.away} size={34} /></span>
+          <div className="last-head">
+            <span className="last-label">Last result</span>
+            <span className="last-fg">
+              {lastMatch.q_fg !== false
+                ? lastMatch.fg_none
+                  ? "No goals ✋"
+                  : `First goal ${lastMatch.fg_minute}'`
+                : ""}
+            </span>
           </div>
-          <p className="field-hint center">
-            {lastMatch.home} v {lastMatch.away}
-            {lastMatch.q_fg !== false
-              ? lastMatch.fg_none
-                ? " · no goals ✋"
-                : ` · first goal ${lastMatch.fg_minute}'`
-              : ""}
-          </p>
+          <div className="last-score-row">
+            <span className="last-flag"><Flag team={lastMatch.home} size={36} /></span>
+            <span className="last-score">{lastMatch.result_home}–{lastMatch.result_away}</span>
+            <span className="last-flag"><Flag team={lastMatch.away} size={36} /></span>
+          </div>
+          <p className="last-teams">{lastMatch.home} v {lastMatch.away}</p>
           {lastWinners.length > 0 ? (
-            <div className="board">
+            <div className="last-chips">
               {lastWinners.map(({ p, s }) => (
-                <div className={`board-row winner ${p.name === joinedName ? "me" : ""}`} key={p.id}>
-                  <span className="board-rank">🎯</span>
-                  <span className="board-who">
-                    <span className="board-name">{p.name}</span>
-                    {nickFor(p.name) && <span className="board-nick">“{nickFor(p.name)}”</span>}
-                  </span>
-                  <span className="board-pts">+{s}</span>
-                </div>
+                <span className={`last-chip ${s === bestLast ? "top" : ""}`} key={p.id}>
+                  {s === bestLast ? "🎯 " : ""}{p.name} +{s}
+                </span>
               ))}
             </div>
           ) : (
@@ -228,16 +228,23 @@ export default function BoardTab({
           <p className="muted empty-state">Join on the 🏠 Room tab to get on the board!</p>
         ) : (
           <div className="board">
-            {board.map((r, i) => (
-              <div className={`board-row ${r.name === joinedName ? "me" : ""}`} key={r.name}>
-                <span className="board-rank">{medal(i)}</span>
-                <span className="board-who">
-                  <span className="board-name">{r.name}</span>
-                  {nickFor(r.name) && <span className="board-nick">“{nickFor(r.name)}”</span>}
-                </span>
-                <span className="board-pts">{r.points} pts</span>
-              </div>
-            ))}
+            {board.map((r, i) => {
+              const isMe = r.name === joinedName;
+              const tier = isMe ? "me" : i === 0 ? "rank-1" : i <= 2 ? "rank-top" : "plain";
+              return (
+                <div className={`board-row ${tier}`} key={r.name}>
+                  <span className="board-rank">{rankBadge(i)}</span>
+                  <span className="board-who">
+                    <span className="board-name">
+                      {r.name}
+                      {isMe && <span className="you-chip">you</span>}
+                    </span>
+                    {nickFor(r.name) && <span className="board-nick">“{nickFor(r.name)}”</span>}
+                  </span>
+                  <span className="board-pts">{r.points} pts</span>
+                </div>
+              );
+            })}
           </div>
         )}
         <p className="field-hint center">Updates live on every phone the second a result is entered.</p>

@@ -124,11 +124,11 @@ export default function ResultsPage({ id }) {
       <section className="card">
         <h2 className="card-title">Share the damage</h2>
         <div className="results-actions">
-          <button className="btn btn-primary" onClick={copyLink}>
-            {copied === "link" ? "Copied ✓" : "Copy results link"}
-          </button>
           <button className="btn btn-whatsapp" onClick={copyWhatsApp}>
             {copied === "wa" ? "Copied ✓" : "Copy for WhatsApp 💬"}
+          </button>
+          <button className="btn btn-ghost" onClick={copyLink}>
+            {copied === "link" ? "Copied ✓" : "Copy results link"}
           </button>
           <button className="btn btn-ghost" onClick={exportCsv}>Export CSV</button>
           <button className="btn btn-ghost" onClick={() => navigate(`/room/${id}`)}>

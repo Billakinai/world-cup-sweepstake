@@ -450,6 +450,7 @@ export default function RoomPage({ id }) {
       (m) =>
         m.status !== "scored" &&
         !kickedOff(m, now) &&
+        new Date(m.kickoff_at).getTime() - now < 24 * 60 * 60 * 1000 && // only nudge near kickoff
         !predictions.some(
           (p) => p.match_id === m.id && p.name.toLowerCase() === joinedName.toLowerCase()
         )

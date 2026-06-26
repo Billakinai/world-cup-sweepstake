@@ -21,7 +21,8 @@ function seedFrom(str) {
 }
 
 function pick(arr, seed) {
-  return arr[seed % arr.length];
+  // seed can be negative (bit-shifts below are unsigned, but stay safe anyway)
+  return arr[((Math.trunc(seed) % arr.length) + arr.length) % arr.length];
 }
 
 export function buildBanter(match, predictions) {
@@ -80,7 +81,7 @@ export function buildBanter(match, predictions) {
       `${top.name} just about got on the board (+${top.s}).`,
     ];
     const tier = top.s >= 5 ? big : top.s >= 3 ? mid : small;
-    parts.push(pick(tier, seed >> 3));
+    parts.push(pick(tier, seed >>> 3));
   }
 
   /* --- Runner-up / climber --------------------------------------------- */
@@ -93,7 +94,7 @@ export function buildBanter(match, predictions) {
       `${second.name} keeps it ticking over (+${second.s}).`,
       `${second.name} chipped in +${second.s} as well.`,
     ];
-    parts.push(pick(climbers, seed >> 7));
+    parts.push(pick(climbers, seed >>> 7));
   }
 
   /* --- Cooked / sympathy ------------------------------------------------ */
@@ -116,7 +117,7 @@ export function buildBanter(match, predictions) {
           `${one} will want to forget that prediction — cooked. 💀`,
           `Chin up ${one}, that one cooked you. 😅`,
         ];
-    parts.push(pick(cookedLines, seed >> 11));
+    parts.push(pick(cookedLines, seed >>> 11));
   } else if (!top) {
     const blanks = [
       `Nobody saw that coming — a clean sweep of blanks. 😅`,
@@ -125,7 +126,7 @@ export function buildBanter(match, predictions) {
       `Zero points all round — the football gods are laughing. 🙃`,
       `Everyone whiffed that one. It happens. 🫠`,
     ];
-    parts.push(pick(blanks, seed >> 11));
+    parts.push(pick(blanks, seed >>> 11));
   }
 
   return { text: parts.join(" "), top, second, cooked, scored };
