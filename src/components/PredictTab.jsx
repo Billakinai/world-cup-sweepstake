@@ -9,6 +9,7 @@ import {
   fmtCountdown,
   fmtKickoff,
   FINISH_LABELS,
+  knockoutRound,
 } from "../lib/predict";
 import { addMatch, updateMatch, deleteMatch, addPrediction } from "../lib/db";
 import { WC_FIXTURES } from "../lib/fixtures";
@@ -204,7 +205,7 @@ export default function PredictTab({
       window.alert("All upcoming World Cup fixtures are already loaded ✅");
       return;
     }
-    if (!window.confirm(`Add ${todo.length} upcoming World Cup group matches (UK kick-off times)?`)) return;
+    if (!window.confirm(`Add ${todo.length} upcoming World Cup matches (UK kick-off times)?`)) return;
     setLoadingFixtures(true);
     try {
       for (const f of todo) {
@@ -213,7 +214,7 @@ export default function PredictTab({
           home: f.home,
           away: f.away,
           kickoff_at: new Date(f.kickoff).toISOString(),
-          is_knockout: false,
+          is_knockout: f.knockout || false,
         });
       }
       refresh();
@@ -227,12 +228,23 @@ export default function PredictTab({
     if (!mHome || !mAway) return setAddErr("Pick both teams.");
     if (mHome === mAway) return setAddErr("A team can't play itself 😄");
     if (!mKick) return setAddErr("Set the kickoff time.");
+    const kickDate = new Date(mKick);
+    if (isNaN(kickDate.getTime()) || kickDate.getFullYear() < 2026 || kickDate.getFullYear() > 2027) {
+      return setAddErr("That date doesn't look right — check the year is 2026.");
+    }
+    // Warn if this fixture already exists
+    const dup = matches.some(
+      (m) => m.home.toLowerCase() === mHome.toLowerCase() && m.away.toLowerCase() === mAway.toLowerCase() && m.status !== "scored"
+    );
+    if (dup && !window.confirm(`${mHome} v ${mAway} is already in the schedule. Add it anyway?`)) return;
+    // All World Cup matches from June 28 onwards are knockout
+    const autoKO = kickDate >= new Date("2026-06-28T00:00:00") || mKO;
     setBusy(true);
     try {
       await addMatch(sweepstake.id, {
         home: mHome, away: mAway,
-        kickoff_at: new Date(mKick).toISOString(),
-        is_knockout: mKO,
+        kickoff_at: kickDate.toISOString(),
+        is_knockout: autoKO,
       });
       setMHome(""); setMAway(""); setMKick(""); setMKO(false); setAddOpen(false);
       refresh();
@@ -408,8 +420,9 @@ export default function PredictTab({
     const effWinner = fw || f.winner;
 
     return (
-      <section className={`card match-card ${big ? "hero-match" : ""} ${m.status === "scored" ? "done" : ""}`} key={m.id}>
+      <section className={`card match-card ${big ? "hero-match" : ""} ${m.status === "scored" ? "done" : ""} ${m.is_knockout ? "ko-match" : ""}`} key={m.id}>
         {big && !off && m.status !== "scored" && <p className="next-kicker">⚡ NEXT MATCH</p>}
+        {m.is_knockout && (() => { const r = knockoutRound(m.kickoff_at); return r ? <p className="ko-banner">{r.emoji} {r.label}</p> : <p className="ko-banner">⚔️ KNOCKOUT</p>; })()}
         {isMine(m) && m.status !== "scored" && <p className="mine-banner">🔥 Your team is playing!</p>}
         <div className="match-head">
           <div className="match-team">
@@ -614,7 +627,7 @@ export default function PredictTab({
           {showFgRule && <p className="rule-line">⏱️ <strong>First goal minute:</strong> exact = 3 pts · one minute out = 2 pts</p>}
           {showScoreRule && <p className="rule-line">🔢 <strong>Exact final score:</strong> 3 pts</p>}
           {showWinnerRule && <p className="rule-line">🏆 <strong>Match winner</strong> (when asked): 2 pts</p>}
-          {showKoRule && <p className="rule-line">⏳ <strong>Knockouts</strong> — normal/extra time/pens: 1 pt</p>}
+          {showKoRule && <p className="rule-line">⚔️ <strong>Knockouts</strong> — normal/extra time/pens: 2 pts</p>}
           <p className="rule-line">🔒 Predictions lock at kickoff. One shot, no changes. Picks hidden until kickoff, then everyone's are revealed.</p>
         </section>
       )}
@@ -693,7 +706,13 @@ export default function PredictTab({
                 <button className="btn btn-primary btn-big" onClick={loadFixtures} disabled={loadingFixtures}>
                   {loadingFixtures ? "Loading fixtures… ⏳" : "📅 Load World Cup fixtures"}
                 </button>
-                <button className="btn btn-ghost" onClick={() => setAddOpen(true)}>➕ Add a single match</button>
+                <button className="btn btn-ghost" onClick={() => {
+                  // Pre-fill kickoff to tomorrow 20:00 and auto-tick knockout (all remaining WC matches are knockout)
+                  const tmrw = new Date(); tmrw.setDate(tmrw.getDate() + 1); tmrw.setHours(20, 0, 0, 0);
+                  setMKick(tmrw.toISOString().slice(0, 16));
+                  setMKO(true);
+                  setAddOpen(true);
+                }}>➕ Add a single match</button>
                 <p className="field-hint">
                   With this panel open, every match card gets: question toggles, 🧮 Enter result, and ✕ delete.
                   Tap a match in the schedule to open it.
@@ -718,7 +737,7 @@ export default function PredictTab({
                 </label>
                 <label className="ko-row">
                   <input type="checkbox" checked={mKO} onChange={(e) => setMKO(e.target.checked)} />
-                  <span>Knockout match (extra time/pens question, +1pt)</span>
+                  <span>Knockout match (extra time/pens question, +2pts)</span>
                 </label>
                 {addErr && <p className="error">{addErr}</p>}
                 <div className="share-row">

@@ -48,7 +48,7 @@ export function flagOf(team) {
  * Khala Naji's rules:
  *  - First goal minute: exact = 3, within ±1 minute = 2. ("No goals" correct = 3.)
  *  - Exact final score = 3.
- *  - Knockout games only: normal time / extra time / penalties correct = 1.
+ *  - Knockout games only: normal time / extra time / penalties correct = 2.
  */
 export function matchWinner(match) {
   if (match.result_home == null || match.result_away == null) return null;
@@ -101,7 +101,7 @@ export function scoreBreakdown(match, pred) {
   }
 
   if (match.is_knockout && match.finish_type && pred.finish_type === match.finish_type) {
-    parts.push({ label: "finish", pts: 1 });
+    parts.push({ label: "finish", pts: 2 });
   }
 
   return parts;
@@ -152,3 +152,16 @@ export function fmtKickoff(iso) {
 }
 
 export const FINISH_LABELS = { normal: "Normal time", extra: "Extra time", pens: "Penalties" };
+
+/** Round label for knockout matches based on kickoff date (2026 World Cup schedule). */
+export function knockoutRound(kickoff_at) {
+  if (!kickoff_at) return null;
+  const d = new Date(kickoff_at);
+  if (d < new Date("2026-06-28T00:00:00Z")) return null;
+  if (d < new Date("2026-07-04T00:00:00Z")) return { emoji: "⚔️", label: "ROUND OF 32" };
+  if (d < new Date("2026-07-08T00:00:00Z")) return { emoji: "⚔️", label: "ROUND OF 16" };
+  if (d < new Date("2026-07-13T00:00:00Z")) return { emoji: "⚔️", label: "QUARTER-FINAL" };
+  if (d < new Date("2026-07-16T00:00:00Z")) return { emoji: "⚔️", label: "SEMI-FINAL" };
+  if (d < new Date("2026-07-19T00:00:00Z")) return { emoji: "🥉", label: "3RD PLACE" };
+  return { emoji: "🏆", label: "FINAL" };
+}
