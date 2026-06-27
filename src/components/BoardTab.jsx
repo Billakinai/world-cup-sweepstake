@@ -116,6 +116,38 @@ export default function BoardTab({
     return [...map.values()].sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
   }, [matches, predictions, participants]);
 
+  // Standings as they were BEFORE the most recent result, so we can show ▲/▼
+  // movement. Computed in memory from data we already have — no DB, no history.
+  const prevBoard = useMemo(() => {
+    const scoredSorted = matches
+      .filter((m) => m.status === "scored")
+      .sort((a, b) => new Date(a.kickoff_at) - new Date(b.kickoff_at));
+    if (scoredSorted.length < 1) return null;
+    const lastId = scoredSorted[scoredSorted.length - 1].id;
+    const before = matches.map((m) => (m.id === lastId ? { ...m, status: "upcoming" } : m));
+    const totals = buildLeaderboard(before, predictions);
+    const map = new Map(totals.map((r) => [r.name.toLowerCase(), { ...r }]));
+    for (const p of participants) {
+      const k = p.name.toLowerCase();
+      if (!map.has(k)) map.set(k, { name: p.name, points: 0 });
+    }
+    for (const p of participants) {
+      const b = Number(p.bonus_points) || 0;
+      const row = map.get(p.name.toLowerCase());
+      if (row && b) row.points += b;
+    }
+    return [...map.values()]
+      .sort((a, b) => b.points - a.points || a.name.localeCompare(b.name))
+      .map((r) => r.name.toLowerCase());
+  }, [matches, predictions, participants]);
+
+  const moveFor = (name, i) => {
+    if (!prevBoard) return null;
+    const was = prevBoard.indexOf(name.toLowerCase());
+    if (was === -1 || was === i) return { dir: "same", txt: "–" };
+    return was > i ? { dir: "up", txt: `▲${was - i}` } : { dir: "down", txt: `▼${i - was}` };
+  };
+
   const lastScores = lastMatch
     ? predictions
         .filter((p) => p.match_id === lastMatch.id)
@@ -231,9 +263,10 @@ export default function BoardTab({
             {board.map((r, i) => {
               const isMe = r.name === joinedName;
               const tier = isMe ? "me" : i === 0 ? "rank-1" : i <= 2 ? "rank-top" : "plain";
+              const mv = moveFor(r.name, i);
               return (
                 <div className={`board-row ${tier}`} key={r.name}>
-                  <span className="board-rank">{rankBadge(i)}</span>
+                  <span className={`board-rank ${i > 4 ? "is-num" : ""}`}>{rankBadge(i)}</span>
                   <span className="board-who">
                     <span className="board-name">
                       {r.name}
@@ -241,13 +274,13 @@ export default function BoardTab({
                     </span>
                     {nickFor(r.name) && <span className="board-nick">“{nickFor(r.name)}”</span>}
                   </span>
-                  <span className="board-pts">{r.points} pts</span>
+                  {mv && <span className={`board-move ${mv.dir}`}>{mv.txt}</span>}
+                  <span className="board-pts">{r.points}</span>
                 </div>
               );
             })}
           </div>
         )}
-        <p className="field-hint center">Updates live on every phone the second a result is entered.</p>
       </section>
 
       {/* Hidden by default. Set SHOW_STARTING_SCORES = true (top of file) to use; admin only. */}
