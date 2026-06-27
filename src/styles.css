@@ -999,7 +999,7 @@ body {
 .board-row.me .board-rank { background: rgba(45,226,255,.12); border-color: rgba(45,226,255,.3); }
 .board-rank.is-num {
   font-family: 'Bricolage Grotesque', sans-serif;
-  font-weight: 800; font-size: 16px; color: rgba(255,255,255,.62);
+  font-weight: 800; font-size: 17px; color: rgba(255,255,255,.92);
 }
 
 .board-name { font-weight: 800; font-size: 16px; color: #fff; display: flex; align-items: center; gap: 7px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -1283,17 +1283,18 @@ select.input option { color: #1c1440; }
 .recap-gained-label { font-size: 10.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #19d97c; }
 .recap-cooked-label { font-size: 10.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255, 255, 255, 0.55); }
 .recap-gain-row {
-  display: flex; align-items: center; gap: 10px; justify-content: space-between;
+  display: flex; align-items: flex-start; gap: 10px; justify-content: space-between;
   background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 11px; padding: 8px 11px;
 }
 .recap-gain-row.top { background: linear-gradient(90deg, rgba(25, 217, 124, 0.16), rgba(25, 217, 124, 0.03)); border-color: rgba(25, 217, 124, 0.3); }
-.recap-gain-name { display: flex; flex-direction: column; min-width: 0; }
-.recap-gain-top { font-weight: 700; font-size: 13.5px; color: #fff; }
+.recap-gain-name { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.recap-gain-top { font-weight: 700; font-size: 13.5px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .recap-gain-nick { font-weight: 600; font-style: italic; color: #7fd9ff; font-size: 11.5px; }
-.recap-gain-detail { font-weight: 700; font-size: 11px; color: rgba(255, 255, 255, 0.6); margin-top: 2px; }
-.recap-gain-pill { flex: none; font-weight: 800; font-size: 13px; border-radius: 999px; padding: 4px 11px; background: rgba(255, 255, 255, 0.14); color: #fff; }
-.recap-gain-pill.top { background: #19d97c; color: #08220f; }
+.recap-gain-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex: none; max-width: 62%; }
+.recap-gain-detail { font-weight: 700; font-size: 11px; color: #19d97c; text-align: right; }
+.recap-gain-pill { flex: none; font-weight: 800; font-size: 13px; border-radius: 999px; padding: 4px 11px; background: rgba(25, 217, 124, 0.18); border: 1px solid rgba(25, 217, 124, 0.3); color: #19d97c; }
+.recap-gain-pill.top { background: #19d97c; border-color: #19d97c; color: #08220f; }
 .recap-cooked-wrap { display: flex; flex-wrap: wrap; gap: 6px; }
 .recap-cooked-chip { background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.12); color: rgba(255, 255, 255, 0.85); border-radius: 999px; padding: 5px 11px; font-size: 12.5px; font-weight: 600; }
 .recap-cooked-foot { margin: 0; font-style: italic; color: rgba(255, 255, 255, 0.45); font-size: 11px; }

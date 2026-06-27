@@ -147,14 +147,14 @@ export default function BoardTab({
     return was > i ? { dir: "up", txt: `▲${was - i}` } : { dir: "down", txt: `▼${i - was}` };
   };
 
-  // Rank badge: medals for the podium, then a medal ribbon for 4th/5th, numbers after.
-  const rankBadge = (i) =>
-    i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : i === 3 ? "🏅" : i === 4 ? "🎖️" : `${i + 1}`;
+  // Rank badge: medals carry the number for the podium; everyone else shows the
+  // actual rank number (the 4th/5th medal emojis have no number and looked gold).
+  const rankBadge = (i) => (i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}`);
 
   async function copyBoard() {
     const lines = board.map((r, i) => {
       const nick = nickFor(r.name);
-      const badge = i <= 4 ? rankBadge(i) : `${i + 1}.`;
+      const badge = i <= 2 ? rankBadge(i) : `${i + 1}.`;
       return `${badge} ${r.name}${nick ? ` “${nick}”` : ""} — ${r.points} pts`;
     });
     if (await copyText(`🏆 Predictions leaderboard\n${lines.join("\n")}`)) {
@@ -230,7 +230,7 @@ export default function BoardTab({
               const mv = moveFor(r.name, i);
               return (
                 <div className={`board-row ${tier}`} key={r.name}>
-                  <span className={`board-rank ${i > 4 ? "is-num" : ""}`}>{rankBadge(i)}</span>
+                  <span className={`board-rank ${i > 2 ? "is-num" : ""}`}>{rankBadge(i)}</span>
                   <span className="board-who">
                     <span className="board-name">
                       {r.name}

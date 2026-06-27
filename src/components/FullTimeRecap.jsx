@@ -132,11 +132,13 @@ export default function FullTimeRecap({ match, predictions = [], participants = 
                       {r.p.name === joinedName ? "You" : r.p.name}
                       {nickFor(r.p.name) && <span className="recap-gain-nick"> “{nickFor(r.p.name)}”</span>}
                     </span>
+                  </span>
+                  <span className="recap-gain-right">
+                    <span className={`recap-gain-pill ${i === 0 ? "top" : ""}`}>+{r.s}</span>
                     <span className="recap-gain-detail">
                       {scoreBreakdown(match, r.p).map((x) => `${x.label} +${x.pts}`).join(" · ")}
                     </span>
                   </span>
-                  <span className={`recap-gain-pill ${i === 0 ? "top" : ""}`}>+{r.s}</span>
                 </div>
               ))
             ) : (
