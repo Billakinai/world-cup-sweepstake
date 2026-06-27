@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { scorePrediction, scoreBreakdown, FINISH_LABELS } from "../lib/predict";
 import { buildBanter } from "../lib/banter";
+import { avatarUrl } from "../lib/avatars";
 import Flag from "./Flag";
 
 const shareSvg = (
@@ -127,11 +128,12 @@ export default function FullTimeRecap({ match, predictions = [], participants = 
             {gained.length ? (
               gained.map((r, i) => (
                 <div className={`recap-gain-row ${i === 0 ? "top" : ""}`} key={r.p.id}>
+                  <img className="recap-gain-avatar" src={avatarUrl(r.p.name)} alt="" loading="lazy" />
                   <span className="recap-gain-name">
                     <span className="recap-gain-top">
                       {r.p.name === joinedName ? "You" : r.p.name}
-                      {nickFor(r.p.name) && <span className="recap-gain-nick"> “{nickFor(r.p.name)}”</span>}
                     </span>
+                    {nickFor(r.p.name) && <span className="recap-gain-nick">{nickFor(r.p.name)}</span>}
                   </span>
                   <span className="recap-gain-right">
                     <span className={`recap-gain-pill ${i === 0 ? "top" : ""}`}>+{r.s}</span>

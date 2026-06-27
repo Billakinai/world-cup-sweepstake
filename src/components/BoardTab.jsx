@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { buildLeaderboard } from "../lib/predict";
 import { setParticipantBonus, addParticipant } from "../lib/db";
+import { avatarUrl } from "../lib/avatars";
 import FullTimeRecap from "./FullTimeRecap";
 
 const shareSvg = (
@@ -224,25 +225,72 @@ export default function BoardTab({
           <p className="muted empty-state">Join on the 🏠 Room tab to get on the board!</p>
         ) : (
           <div className="board">
-            {board.map((r, i) => {
-              const isMe = r.name === joinedName;
-              const tier = isMe ? "me" : i === 0 ? "rank-1" : i <= 2 ? "rank-top" : "plain";
-              const mv = moveFor(r.name, i);
-              return (
-                <div className={`board-row ${tier}`} key={r.name}>
-                  <span className={`board-rank ${i > 2 ? "is-num" : ""}`}>{rankBadge(i)}</span>
-                  <span className="board-who">
-                    <span className="board-name">
-                      {r.name}
-                      {isMe && <span className="you-chip">you</span>}
-                    </span>
-                    {nickFor(r.name) && <span className="board-nick">“{nickFor(r.name)}”</span>}
-                  </span>
-                  {mv && <span className={`board-move ${mv.dir}`}>{mv.txt}</span>}
-                  <span className="board-pts">{r.points}</span>
+            {(() => {
+              const hasPodium = board.length >= 3;
+
+              const podium = hasPodium ? (
+                <div className="podium">
+                  {[1, 0, 2].map((idx) => {            /* render order: 2nd · 1st · 3rd */
+                    const r = board[idx];
+                    const place = idx + 1;
+                    const isMe = r.name === joinedName;
+                    return (
+                      <div className={`podium-card place-${place} ${isMe ? "me" : ""}`} key={r.name}>
+                        <div className="podium-topper">{place === 1 ? "👑" : place === 2 ? "🥈" : "🥉"}</div>
+                        <div className="podium-avatar">
+                          <img src={avatarUrl(r.name)} alt="" loading="lazy" />
+                          <span className="podium-rib">{place === 1 ? "1st" : place === 2 ? "2nd" : "3rd"}</span>
+                        </div>
+                        <div className="podium-name">
+                          {r.name}
+                          {isMe && <span className="you-chip">you</span>}
+                        </div>
+                        <div className="podium-pts">{r.points}</div>
+                      </div>
+                    );
+                  })}
                 </div>
+              ) : null;
+
+              const listRows = hasPodium ? board.slice(3) : board;
+
+              return (
+                <>
+                  {podium}
+                  {listRows.map((r, j) => {
+                    const i = hasPodium ? j + 3 : j;     /* absolute rank index — keep medals/moves correct */
+                    const isMe = r.name === joinedName;
+                    const tier = isMe ? "me" : i === 0 ? "rank-1" : i <= 2 ? "rank-top" : "plain";
+                    const mv = moveFor(r.name, i);
+                    const glow =
+                      i === 0 ? "glow-gold" : i === 1 ? "glow-silver" : i === 2 ? "glow-bronze" :
+                      i === 3 ? "glow-cyan" : i === 4 ? "glow-violet" : "glow-soft";
+                    // rank chip: 4th cyan disc, 5th violet disc, 6th+ gold laurel-number.
+                    // No podium (tiny board < 3) → fall back to the original medal/number chip.
+                    const rankCls = !hasPodium ? `board-rank ${i > 2 ? "is-num" : ""}`
+                      : i === 3 ? "board-rank rank-cyan"
+                      : i === 4 ? "board-rank rank-violet"
+                      : "board-rank rank-laurel";
+                    const rankTxt = hasPodium ? `${i + 1}` : rankBadge(i);
+                    return (
+                      <div className={`board-row ${tier}`} key={r.name}>
+                        <span className={rankCls}>{rankTxt}</span>
+                        <img className="board-avatar" src={avatarUrl(r.name)} alt="" loading="lazy" />
+                        <span className="board-who">
+                          <span className={`board-name ${glow}`}>
+                            {r.name}
+                            {isMe && <span className="you-chip">you</span>}
+                          </span>
+                          {nickFor(r.name) && <span className="board-nick">{nickFor(r.name)}</span>}
+                        </span>
+                        {mv && <span className={`board-move ${mv.dir}`}>{mv.txt}</span>}
+                        <span className="board-pts">{r.points}</span>
+                      </div>
+                    );
+                  })}
+                </>
               );
-            })}
+            })()}
           </div>
         )}
       </section>

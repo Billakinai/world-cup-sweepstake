@@ -13,6 +13,7 @@ import {
 } from "../lib/predict";
 import { addMatch, updateMatch, deleteMatch, addPrediction } from "../lib/db";
 import { WC_FIXTURES } from "../lib/fixtures";
+import { avatarUrl } from "../lib/avatars";
 import Flag from "./Flag";
 
 const shareSvg = (
@@ -510,9 +511,10 @@ export default function PredictTab({
                   .sort((a, b) => b.s - a.s || a.p.name.localeCompare(b.p.name))
                   .map(({ p, s }) => (
                     <div className={`pred-row ${p.name === joinedName ? "me" : ""}`} key={p.id}>
+                      <img className="pred-avatar" src={avatarUrl(p.name)} alt="" loading="lazy" />
                       <span className="pred-who">
                         <span className="pred-name">{p.name}</span>
-                        {nickFor(p.name) && <span className="pred-nick">“{nickFor(p.name)}”</span>}
+                        {nickFor(p.name) && <span className="pred-nick">{nickFor(p.name)}</span>}
                       </span>
                       <span className="pred-pick">
                         {myPickText(m, p)}
@@ -538,9 +540,10 @@ export default function PredictTab({
               <div className="pred-results">
                 {mPreds.map((p) => (
                   <div className={`pred-row ${p.name === joinedName ? "me" : ""}`} key={p.id}>
+                    <img className="pred-avatar" src={avatarUrl(p.name)} alt="" loading="lazy" />
                     <span className="pred-who">
                       <span className="pred-name">{p.name}</span>
-                      {nickFor(p.name) && <span className="pred-nick">“{nickFor(p.name)}”</span>}
+                      {nickFor(p.name) && <span className="pred-nick">{nickFor(p.name)}</span>}
                     </span>
                     <span className="pred-pick">{myPickText(m, p)}</span>
                   </div>

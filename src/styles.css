@@ -1305,3 +1305,150 @@ select.input option { color: #1c1440; }
   color: #2de2ff; border-radius: 11px; padding: 9px; width: 100%; font-weight: 800; font-size: 12px;
   cursor: pointer; margin-top: 2px;
 }
+
+/* ===== Avatars + podium + glow names (Board & Predict) ===== */
+
+/* avatar discs (bg gradient = graceful fallback if the image is slow/offline) */
+.board-avatar, .pred-avatar, .recap-gain-avatar {
+  flex: none; border-radius: 50%; display: block; object-fit: cover;
+  background: linear-gradient(135deg, #3a2a8c, #2a1f6e);
+  box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.18);
+}
+.board-avatar { width: 38px; height: 38px; }
+.pred-avatar  { width: 30px; height: 30px; }
+.recap-gain-avatar { width: 32px; height: 32px; }
+
+/* nickname → gold pill (replaces the old light-blue italic, both tabs) */
+.board-nick, .pred-nick {
+  align-self: flex-start; display: inline-block; font-style: normal;
+  font-weight: 700; font-size: 10.5px; color: #ffd673;
+  background: rgba(255,200,61,.15); border: 1px solid rgba(255,200,61,.38);
+  border-radius: 999px; padding: 2px 9px; margin-top: 3px; max-width: 100%;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* keep the pill gold even on the existing rank-1 / me overrides */
+.board-row.rank-1 .board-nick, .board-row.me .board-nick { color: #ffd673; }
+
+/* glow name tiers (Board list) */
+.board-name.glow-gold   { color:#fff1c4; text-shadow:0 0 7px rgba(255,200,61,.9),0 0 18px rgba(255,180,40,.5); }
+.board-name.glow-silver { color:#f3f7ff; text-shadow:0 0 6px rgba(205,222,255,.85),0 0 15px rgba(180,205,255,.45); }
+.board-name.glow-bronze { color:#ffdcbf; text-shadow:0 0 6px rgba(255,140,70,.85),0 0 15px rgba(255,110,50,.45); }
+.board-name.glow-cyan   { color:#d6f8ff; text-shadow:0 0 7px rgba(45,226,255,.95),0 0 17px rgba(45,226,255,.55); }
+.board-name.glow-violet { color:#ece2ff; text-shadow:0 0 7px rgba(150,110,255,.95),0 0 17px rgba(125,85,245,.55); }
+.board-name.glow-soft   { color:#b6e9fb; text-shadow:0 0 4px rgba(45,226,255,.5),0 0 11px rgba(45,226,255,.25); }
+
+/* Predict names — soft glow, brighter for "you" */
+.pred-name { color:#b6e9fb; text-shadow:0 0 4px rgba(45,226,255,.5),0 0 11px rgba(45,226,255,.25); }
+.pred-row.me .pred-name { color:#d6f8ff; text-shadow:0 0 6px rgba(45,226,255,.8),0 0 14px rgba(45,226,255,.45); }
+
+/* Gained rows — vertically centre now that there's an avatar */
+.recap-gain-row { align-items: center; }
+/* Gained nickname → gold pill (matches Board/Predict) */
+.recap-gain-nick {
+  align-self: flex-start; display: inline-block; font-style: normal; font-weight: 700; font-size: 10px;
+  color: #ffd673; background: rgba(255,200,61,.15); border: 1px solid rgba(255,200,61,.38);
+  border-radius: 999px; padding: 1px 8px; margin-top: 3px; max-width: 100%;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* ===== Podium (top 3 of the Board standings) ===== */
+.podium { display:flex; align-items:flex-end; gap:9px; padding:18px 0 4px; }
+.podium-card {
+  flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; gap:6px;
+  background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12);
+  border-radius:18px; padding:12px 7px;
+}
+.podium-card.place-1 {
+  flex:1.14; padding-bottom:14px;
+  background:linear-gradient(180deg, rgba(255,200,61,.2), rgba(255,255,255,.03));
+  border-color:rgba(255,200,61,.5); box-shadow:0 10px 26px rgba(255,160,40,.2);
+}
+.podium-card.place-2 { border-color:rgba(214,226,255,.3); }
+.podium-card.place-3 { border-color:rgba(255,138,72,.32); }
+.podium-card.me { box-shadow:0 0 0 1.5px rgba(45,226,255,.5); }
+.podium-topper { font-size:18px; line-height:1; margin-bottom:-3px; }
+.podium-card.place-1 .podium-topper { font-size:20px; margin-bottom:-4px; }
+.podium-avatar { position:relative; width:56px; height:56px; }
+.podium-card.place-1 .podium-avatar { width:68px; height:68px; }
+.podium-avatar img {
+  width:100%; height:100%; border-radius:50%; display:block; object-fit:cover;
+  background:linear-gradient(135deg,#3a2a8c,#2a1f6e); box-shadow:0 0 0 3px rgba(255,255,255,.25);
+}
+.podium-card.place-1 .podium-avatar img { box-shadow:0 0 0 3.5px rgba(255,200,61,.95), 0 6px 18px rgba(255,150,40,.4); }
+.podium-card.place-2 .podium-avatar img { box-shadow:0 0 0 3px rgba(214,226,255,.9); }
+.podium-card.place-3 .podium-avatar img { box-shadow:0 0 0 3px rgba(255,138,72,.9); }
+.podium-rib {
+  position:absolute; bottom:-9px; left:50%; transform:translateX(-50%);
+  font-family:'Bricolage Grotesque', sans-serif; font-size:10.5px; font-weight:800;
+  border-radius:999px; padding:1px 8px; box-shadow:0 2px 6px rgba(0,0,0,.35); white-space:nowrap;
+}
+.podium-card.place-1 .podium-rib { color:#3a2600; background:linear-gradient(180deg,#ffe08a,#f3b526); }
+.podium-card.place-2 .podium-rib { color:#1a2238; background:linear-gradient(180deg,#eef3ff,#c2cfe6); }
+.podium-card.place-3 .podium-rib { color:#3a1a00; background:linear-gradient(180deg,#ffc89a,#e08246); }
+.podium-name {
+  margin-top:5px; font-family:'Bricolage Grotesque', sans-serif; font-weight:800; font-size:13.5px;
+  color:#fff; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  display:flex; align-items:center; gap:5px;
+}
+.podium-card.place-1 .podium-name { font-size:15px; color:#fff1c4; text-shadow:0 0 7px rgba(255,200,61,.9); }
+.podium-card.place-2 .podium-name { color:#f3f7ff; text-shadow:0 0 6px rgba(205,222,255,.7); }
+.podium-card.place-3 .podium-name { color:#ffdcbf; text-shadow:0 0 6px rgba(255,140,70,.7); }
+.podium-pts { font-family:'Bricolage Grotesque', sans-serif; font-weight:800; font-size:13px; color:var(--sun); }
+
+/* ===== Rank chips (Board list): 4th cyan · 5th violet · 6th+ gold laurel ===== */
+/* NOTE: prefixed with .board-row so these beat the existing
+   `.board-row.me .board-rank` override (0,3,0) for the "you" row. */
+/* 4th & 5th: keep the neon glow disc AND frame it with a colour-matched laurel
+   medal (same wreath as 6th+, just cyan / violet instead of gold). */
+.board-row .board-rank.rank-cyan, .board-row .board-rank.rank-violet {
+  border:none; border-radius:0; box-shadow:none; background-color:transparent;
+  font-family:'Bricolage Grotesque', sans-serif; font-weight:800; font-size:14px;
+  background-repeat:no-repeat, no-repeat; background-position:center, center;
+  background-size:contain, 19px 19px;
+}
+.board-row .board-rank.rank-cyan {
+  color:#eafdff; text-shadow:0 0 5px rgba(45,226,255,.85);
+  background-image:
+    url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2040%2040'%3E%3Cellipse%20cx%3D'12'%20cy%3D'30.5'%20rx%3D'2'%20ry%3D'3.9'%20fill%3D'%232de2ff'%20transform%3D'rotate(42%2012%2030.5)'%2F%3E%3Cellipse%20cx%3D'28'%20cy%3D'30.5'%20rx%3D'2'%20ry%3D'3.9'%20fill%3D'%232de2ff'%20transform%3D'rotate(-42%2028%2030.5)'%2F%3E%3Cellipse%20cx%3D'9.2'%20cy%3D'26.2'%20rx%3D'2'%20ry%3D'3.9'%20fill%3D'%232de2ff'%20transform%3D'rotate(24%209.2%2026.2)'%2F%3E%3Cellipse%20cx%3D'30.8'%20cy%3D'26.2'%20rx%3D'2'%20ry%3D'3.9'%20fill%3D'%232de2ff'%20transform%3D'rotate(-24%2030.8%2026.2)'%2F%3E%3Cellipse%20cx%3D'7.6'%20cy%3D'21.4'%20rx%3D'2'%20ry%3D'3.9'%20fill%3D'%232de2ff'%20transform%3D'rotate(7%207.6%2021.4)'%2F%3E%3Cellipse%20cx%3D'32.4'%20cy%3D'21.4'%20rx%3D'2'%20ry%3D'3.9'%20fill%3D'%232de2ff'%20transform%3D'rotate(-7%2032.4%2021.4)'%2F%3E%3Cellipse%20cx%3D'7.4'%20cy%3D'16.4'%20rx%3D'2'%20ry%3D'3.9'%20fill%3D'%232de2ff'%20transform%3D'rotate(-12%207.4%2016.4)'%2F%3E%3Cellipse%20cx%3D'32.6'%20cy%3D'16.4'%20rx%3D'2'%20ry%3D'3.9'%20fill%3D'%232de2ff'%20transform%3D'rotate(12%2032.6%2016.4)'%2F%3E%3Cellipse%20cx%3D'9.2'%20cy%3D'11.8'%20rx%3D'2'%20ry%3D'3.9'%20fill%3D'%232de2ff'%20transform%3D'rotate(-30%209.2%2011.8)'%2F%3E%3Cellipse%20cx%3D'30.8'%20cy%3D'11.8'%20rx%3D'2'%20ry%3D'3.9'%20fill%3D'%232de2ff'%20transform%3D'rotate(30%2030.8%2011.8)'%2F%3E%3C%2Fsvg%3E"),
+    radial-gradient(circle, rgba(45,226,255,.5) 0 58%, rgba(45,226,255,.14) 70%, transparent 74%);
+  filter:drop-shadow(0 0 4px rgba(45,226,255,.55));
+}
+.board-row .board-rank.rank-violet {
+  color:#f3eeff; text-shadow:0 0 5px rgba(150,110,255,.85);
+  background-image:
+    url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2040%2040'%3E%3Cellipse%20cx%3D'12'%20cy%3D'30.5'%20rx%3D'2'%20ry%3D'3.9'%20fill%3D'%23966eff'%20transform%3D'rotate(42%2012%2030.5)'%2F%3E%3Cellipse%20cx%3D'28'%20cy%3D'30.5'%20rx%3D'2'%20ry%3D'3.9'%20fill%3D'%23966eff'%20transform%3D'rotate(-42%2028%2030.5)'%2F%3E%3Cellipse%20cx%3D'9.2'%20cy%3D'26.2'%20rx%3D'2'%20ry%3D'3.9'%20fill%3D'%23966eff'%20transform%3D'rotate(24%209.2%2026.2)'%2F%3E%3Cellipse%20cx%3D'30.8'%20cy%3D'26.2'%20rx%3D'2'%20ry%3D'3.9'%20fill%3D'%23966eff'%20transform%3D'rotate(-24%2030.8%2026.2)'%2F%3E%3Cellipse%20cx%3D'7.6'%20cy%3D'21.4'%20rx%3D'2'%20ry%3D'3.9'%20fill%3D'%23966eff'%20transform%3D'rotate(7%207.6%2021.4)'%2F%3E%3Cellipse%20cx%3D'32.4'%20cy%3D'21.4'%20rx%3D'2'%20ry%3D'3.9'%20fill%3D'%23966eff'%20transform%3D'rotate(-7%2032.4%2021.4)'%2F%3E%3Cellipse%20cx%3D'7.4'%20cy%3D'16.4'%20rx%3D'2'%20ry%3D'3.9'%20fill%3D'%23966eff'%20transform%3D'rotate(-12%207.4%2016.4)'%2F%3E%3Cellipse%20cx%3D'32.6'%20cy%3D'16.4'%20rx%3D'2'%20ry%3D'3.9'%20fill%3D'%23966eff'%20transform%3D'rotate(12%2032.6%2016.4)'%2F%3E%3Cellipse%20cx%3D'9.2'%20cy%3D'11.8'%20rx%3D'2'%20ry%3D'3.9'%20fill%3D'%23966eff'%20transform%3D'rotate(-30%209.2%2011.8)'%2F%3E%3Cellipse%20cx%3D'30.8'%20cy%3D'11.8'%20rx%3D'2'%20ry%3D'3.9'%20fill%3D'%23966eff'%20transform%3D'rotate(30%2030.8%2011.8)'%2F%3E%3C%2Fsvg%3E"),
+    radial-gradient(circle, rgba(150,110,255,.55) 0 58%, rgba(150,110,255,.16) 70%, transparent 74%);
+  filter:drop-shadow(0 0 4px rgba(150,110,255,.55));
+}
+.board-row .board-rank.rank-laurel {
+  font-family:'Bricolage Grotesque', sans-serif; font-weight:800; font-size:14px; color:#fff;
+  border:none; border-radius:0;
+  background:url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2040%2040'%3E%3Cellipse%20cx%3D'12'%20cy%3D'30.5'%20rx%3D'2'%20ry%3D'3.9'%20fill%3D'%23ffd24a'%20transform%3D'rotate(42%2012%2030.5)'%2F%3E%3Cellipse%20cx%3D'28'%20cy%3D'30.5'%20rx%3D'2'%20ry%3D'3.9'%20fill%3D'%23ffd24a'%20transform%3D'rotate(-42%2028%2030.5)'%2F%3E%3Cellipse%20cx%3D'9.2'%20cy%3D'26.2'%20rx%3D'2'%20ry%3D'3.9'%20fill%3D'%23ffd24a'%20transform%3D'rotate(24%209.2%2026.2)'%2F%3E%3Cellipse%20cx%3D'30.8'%20cy%3D'26.2'%20rx%3D'2'%20ry%3D'3.9'%20fill%3D'%23ffd24a'%20transform%3D'rotate(-24%2030.8%2026.2)'%2F%3E%3Cellipse%20cx%3D'7.6'%20cy%3D'21.4'%20rx%3D'2'%20ry%3D'3.9'%20fill%3D'%23ffd24a'%20transform%3D'rotate(7%207.6%2021.4)'%2F%3E%3Cellipse%20cx%3D'32.4'%20cy%3D'21.4'%20rx%3D'2'%20ry%3D'3.9'%20fill%3D'%23ffd24a'%20transform%3D'rotate(-7%2032.4%2021.4)'%2F%3E%3Cellipse%20cx%3D'7.4'%20cy%3D'16.4'%20rx%3D'2'%20ry%3D'3.9'%20fill%3D'%23ffd24a'%20transform%3D'rotate(-12%207.4%2016.4)'%2F%3E%3Cellipse%20cx%3D'32.6'%20cy%3D'16.4'%20rx%3D'2'%20ry%3D'3.9'%20fill%3D'%23ffd24a'%20transform%3D'rotate(12%2032.6%2016.4)'%2F%3E%3Cellipse%20cx%3D'9.2'%20cy%3D'11.8'%20rx%3D'2'%20ry%3D'3.9'%20fill%3D'%23ffd24a'%20transform%3D'rotate(-30%209.2%2011.8)'%2F%3E%3Cellipse%20cx%3D'30.8'%20cy%3D'11.8'%20rx%3D'2'%20ry%3D'3.9'%20fill%3D'%23ffd24a'%20transform%3D'rotate(30%2030.8%2011.8)'%2F%3E%3C%2Fsvg%3E") center/contain no-repeat;
+}
+
+/* ===== Bulletproof responsive rows (perfect at any phone width) ===== */
+/* fixed bits never shrink; the name/nick column takes all spare room and can never overflow */
+.board-row, .pred-row, .recap-gain-row { min-width: 0; }
+.board-rank, .board-avatar, .board-move, .board-pts,
+.pred-avatar, .pred-pts, .recap-gain-avatar, .recap-gain-right { flex: none; }
+.board-who, .pred-who, .recap-gain-name { min-width: 0; flex: 1 1 auto; }
+.pred-who { max-width: 52%; }
+/* names show IN FULL — wrap to a second line instead of getting cut; long unbroken strings still can't overflow */
+.board-name, .pred-name {
+  white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+}
+/* the nickname pill stays one tidy line (ellipsis only if genuinely enormous) */
+.board-nick, .pred-nick, .recap-gain-nick { max-width: 100%; }
+
+/* tighten the furniture on small/old phones so names rarely even need to wrap */
+@media (max-width: 360px) {
+  .board-row { gap: 9px; padding: 10px 11px; }
+  .board-avatar { width: 34px; height: 34px; }
+  .board-rank,
+  .board-row .board-rank.rank-cyan, .board-row .board-rank.rank-violet { width: 30px; height: 30px; }
+  .board-row .board-rank.rank-laurel { width: 32px; height: 32px; }
+  .board-pts { padding: 5px 11px; }
+  .pred-avatar { width: 28px; height: 28px; }
+  .pred-who { max-width: 48%; }
+}
