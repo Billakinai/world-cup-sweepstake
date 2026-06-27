@@ -1452,3 +1452,20 @@ select.input option { color: #1c1440; }
   .pred-avatar { width: 28px; height: 28px; }
   .pred-who { max-width: 48%; }
 }
+
+/* ===== Leaderboard title — animated cyan neon ===== */
+.leaderboard-title {
+  font-family: var(--font-display); font-weight: 800; font-size: 17px; letter-spacing: .01em;
+  color: #eafdff; animation: lb-neon 2.4s ease-in-out infinite;
+}
+@keyframes lb-neon {
+  0%, 100% { text-shadow: 0 0 5px rgba(45,226,255,.7), 0 0 12px rgba(45,226,255,.45); }
+  50%      { text-shadow: 0 0 9px rgba(45,226,255,1), 0 0 20px rgba(45,226,255,.7), 0 0 32px rgba(45,226,255,.4); }
+}
+
+/* ===== "Got cooked" — warm, cheeky personality (winners are green, the cooked get roasted) ===== */
+.recap-cooked-label { color: #ff9d6b; text-shadow: 0 0 8px rgba(255,106,61,.45); }
+.recap-cooked-chip {
+  background: rgba(255,106,61,.14); border-color: rgba(255,106,61,.34); color: #ffc7ad;
+}
+.recap-cooked-foot { color: rgba(255,160,110,.72); }

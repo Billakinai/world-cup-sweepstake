@@ -54,7 +54,7 @@ export default function RoomPage({ id }) {
   const [messages, setMessages] = useState([]);
   const [matches, setMatches] = useState([]);
   const [predictions, setPredictions] = useState([]);
-  const [tab, setTab] = useState("predict");
+  const [tab, setTab] = useState("board");
 
   // Joining
   const [joinedName, setJoinedName] = useState(localStorage.getItem(`fwcs-me-${id}`) || "");

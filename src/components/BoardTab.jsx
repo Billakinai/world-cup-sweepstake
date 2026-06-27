@@ -218,7 +218,7 @@ export default function BoardTab({
       {/* Overall */}
       <section className="card">
         <div className="players-head">
-          <span className="field-label">🏆 Overall standings</span>
+          <span className="field-label leaderboard-title">🏆 Leaderboard</span>
           <button className="share-pill" onClick={copyBoard}>{shareSvg}{copied ? "Copied ✓" : "Share"}</button>
         </div>
         {board.length === 0 ? (
