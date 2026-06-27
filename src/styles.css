@@ -1070,7 +1070,7 @@ select.input option { color: #1c1440; }
 .board-who, .pred-who { display: flex; flex-direction: column; min-width: 0; flex: 1; }
 .pred-who { flex: none; max-width: 40%; }
 .pred-nick { font-size: 11.5px; font-style: italic; font-weight: 600; color: #7fd9ff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.board-nick { font-size: 11.5px; font-style: italic; font-weight: 600; color: rgba(255,255,255,.55); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.board-nick { font-size: 11.5px; font-style: italic; font-weight: 600; color: #7fd9ff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .board-row.rank-1 .board-nick { color: #ffc83d; }
 .board-row.me .board-nick { color: #7fd9ff; }
 .pred-who .pred-name { max-width: 100%; }
@@ -1193,6 +1193,9 @@ select.input option { color: #1c1440; }
 .winner-flag { display: inline-flex; align-items: center; gap: 5px; }
 
 /* Full-Time Recap (read-only overlay) --------------------------------------------- */
+
+/* Recap shown inline at the top of the Board tab */
+.recap-inline { display: flex; flex-direction: column; gap: 12px; }
 
 .recap-overlay {
   position: fixed;

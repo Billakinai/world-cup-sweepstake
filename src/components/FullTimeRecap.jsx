@@ -29,7 +29,7 @@ async function copyText(text) {
 
 /** Read-only "dramatic finish" view for one scored match. Computes everything
  *  locally from the existing scorer — no DB reads, no DB writes. */
-export default function FullTimeRecap({ match, predictions = [], participants = [], joinedName, onClose }) {
+export default function FullTimeRecap({ match, predictions = [], participants = [], joinedName }) {
   const [copied, setCopied] = useState(false);
   if (!match) return null;
 
@@ -79,10 +79,7 @@ export default function FullTimeRecap({ match, predictions = [], participants = 
     });
 
   return (
-    <div className="recap-overlay" role="dialog" aria-modal="true">
-      <div className="recap-sheet">
-        <button className="recap-close" onClick={onClose} aria-label="Close recap">✕</button>
-
+    <div className="recap-inline">
         {/* FULL TIME hero */}
         <section className="recap-hero">
           <button className="share-mini recap-hero-share" onClick={share} title="Copy for WhatsApp">
@@ -167,11 +164,6 @@ export default function FullTimeRecap({ match, predictions = [], participants = 
             )}
           </div>
         </section>
-
-        <button className="btn btn-ghost btn-big recap-back" onClick={onClose}>
-          Back to the board
-        </button>
-      </div>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
-import { scorePrediction, buildLeaderboard } from "../lib/predict";
+import { buildLeaderboard } from "../lib/predict";
 import { setParticipantBonus, addParticipant } from "../lib/db";
-import Flag from "./Flag";
+import FullTimeRecap from "./FullTimeRecap";
 
 const shareSvg = (
   <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor"
@@ -79,7 +79,6 @@ export default function BoardTab({
   isAdmin = false,
   sweepstakeId,
   refresh = () => {},
-  onOpenRecap = () => {},
 }) {
   const [copied, setCopied] = useState(false);
   const [seedOpen, setSeedOpen] = useState(false);
@@ -148,15 +147,6 @@ export default function BoardTab({
     return was > i ? { dir: "up", txt: `▲${was - i}` } : { dir: "down", txt: `▼${i - was}` };
   };
 
-  const lastScores = lastMatch
-    ? predictions
-        .filter((p) => p.match_id === lastMatch.id)
-        .map((p) => ({ p, s: scorePrediction(lastMatch, p) }))
-        .sort((a, b) => b.s - a.s || a.p.name.localeCompare(b.p.name))
-    : [];
-  const bestLast = lastScores.length && lastScores[0].s > 0 ? lastScores[0].s : 0;
-  const lastWinners = lastScores.filter((x) => x.s > 0);
-
   // Rank badge: medals for the podium, then a medal ribbon for 4th/5th, numbers after.
   const rankBadge = (i) =>
     i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : i === 3 ? "🏅" : i === 4 ? "🎖️" : `${i + 1}`;
@@ -209,40 +199,14 @@ export default function BoardTab({
 
   return (
     <>
-      {/* Last match spotlight */}
+      {/* Latest match — full-time recap shown inline at the top of the board */}
       {lastMatch ? (
-        <section className="card last-card">
-          <div className="last-head">
-            <span className="last-label">Last result</span>
-            <span className="last-fg">
-              {lastMatch.q_fg !== false
-                ? lastMatch.fg_none
-                  ? "No goals ✋"
-                  : `First goal ${lastMatch.fg_minute}'`
-                : ""}
-            </span>
-          </div>
-          <div className="last-score-row">
-            <span className="last-flag"><Flag team={lastMatch.home} size={36} /></span>
-            <span className="last-score">{lastMatch.result_home}–{lastMatch.result_away}</span>
-            <span className="last-flag"><Flag team={lastMatch.away} size={36} /></span>
-          </div>
-          <p className="last-teams">{lastMatch.home} v {lastMatch.away}</p>
-          {lastWinners.length > 0 ? (
-            <div className="last-chips">
-              {lastWinners.map(({ p, s }) => (
-                <span className={`last-chip ${s === bestLast ? "top" : ""}`} key={p.id}>
-                  {s === bestLast ? "🎯 " : ""}{p.name} +{s}
-                </span>
-              ))}
-            </div>
-          ) : (
-            <p className="muted empty-state">Nobody scored on that one 😅</p>
-          )}
-          <button className="recap-open-btn" onClick={() => onOpenRecap(lastMatch)}>
-            📣 See the full-time recap →
-          </button>
-        </section>
+        <FullTimeRecap
+          match={lastMatch}
+          predictions={predictions}
+          participants={participants}
+          joinedName={joinedName}
+        />
       ) : (
         <section className="card center-card">
           <h2 className="card-title">🏆 Leaderboard</h2>
