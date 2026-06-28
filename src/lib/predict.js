@@ -158,7 +158,7 @@ export function knockoutRound(kickoff_at) {
   if (!kickoff_at) return null;
   const d = new Date(kickoff_at);
   if (d < new Date("2026-06-28T00:00:00Z")) return null;
-  if (d < new Date("2026-07-04T00:00:00Z")) return { emoji: "⚔️", label: "ROUND OF 32" };
+  if (d < new Date("2026-07-04T06:00:00Z")) return { emoji: "⚔️", label: "ROUND OF 32" };
   if (d < new Date("2026-07-08T00:00:00Z")) return { emoji: "⚔️", label: "ROUND OF 16" };
   if (d < new Date("2026-07-13T00:00:00Z")) return { emoji: "⚔️", label: "QUARTER-FINAL" };
   if (d < new Date("2026-07-16T00:00:00Z")) return { emoji: "⚔️", label: "SEMI-FINAL" };
