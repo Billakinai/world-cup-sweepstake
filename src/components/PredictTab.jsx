@@ -44,7 +44,7 @@ function fmtShort(iso) {
   return new Date(iso).toLocaleString(undefined, { weekday: "short", hour: "2-digit", minute: "2-digit" });
 }
 
-/** Extra time or penalties are only possible when the score after 90 minutes is level. */
+/** Penalties are only possible when the final match score is level. */
 function scoreState(home, away) {
   if (home === "" || away === "") return "missing";
   const h = Number(home);
@@ -55,7 +55,7 @@ function scoreState(home, away) {
 
 function finishMatchesScore(finish, state) {
   if (!finish || state === "missing") return false;
-  return finish === "normal" ? state === "decided" : state === "level";
+  return finish === "pens" ? state === "level" : state === "decided";
 }
 
 export default function PredictTab({
@@ -209,18 +209,18 @@ export default function PredictTab({
    * What the typed score forces the winner to be — stops anyone predicting
    * e.g. "3-1" and then picking the other team. Returns "home" / "away" /
    * "draw" when the score settles it, or "" when the player still chooses
-   * (a level knockout that goes to extra time/pens, or no score entered yet).
+   * (a level knockout that goes to penalties, or no score entered yet).
    * Form-only: doesn't touch saved predictions or how anything is scored.
    */
   function forcedWinner(m, f) {
     if (m.q_score === false) return "";               // no score question → free pick
-    if (f.none) return m.is_knockout ? "" : "draw";   // 0-0: group = draw, KO goes beyond 90 minutes
+    if (f.none) return m.is_knockout ? "" : "draw";   // 0-0 final: group = draw, KO goes to penalties
     if (f.home === "" || f.away === "") return "";    // score not entered yet
     const h = Number(f.home), a = Number(f.away);
     if (Number.isNaN(h) || Number.isNaN(a)) return "";
     if (h > a) return "home";
     if (a > h) return "away";
-    return m.is_knockout ? "" : "draw";               // level: group = draw, KO = free (extra time/pens)
+    return m.is_knockout ? "" : "draw";               // level: group = draw, KO = choose shootout winner
   }
 
   /** "1st goal +3 · score +3" — only the parts that actually scored. */
@@ -239,7 +239,7 @@ export default function PredictTab({
     if (askFg && !f.none && (f.minute === "" || Number(f.minute) < 0 || Number(f.minute) > 130)) {
       errs[m.id] = "Enter the first-goal minute (or tap No goals).";
     } else if (askScore && (f.home === "" || f.away === "" || Number(f.home) < 0 || Number(f.away) < 0)) {
-      errs[m.id] = m.is_knockout ? "Enter the score after 90 minutes." : "Enter the final score.";
+      errs[m.id] = m.is_knockout ? "Enter the final match score." : "Enter the final score.";
     } else if (askScore && f.none && (Number(f.home) !== 0 || Number(f.away) !== 0)) {
       errs[m.id] = "No goals means the score must be 0-0!";
     } else if (askWinner && !effWinner) {
@@ -249,14 +249,14 @@ export default function PredictTab({
     } else if (m.is_knockout && askScore && !finishMatchesScore(f.finish, scoreState(f.home, f.away))) {
       errs[m.id] =
         scoreState(f.home, f.away) === "level"
-          ? "A level score after 90 minutes must go to extra time or penalties."
-          : "Extra time or penalties require a level score after 90 minutes.";
+          ? "A level final match score must be decided on penalties."
+          : "Penalties require a level final match score.";
     }
     setErrors(errs);
     if (errs[m.id]) return;
     const bits = [];
     if (askFg) bits.push(f.none ? "No goals" : `First goal ${f.minute}'`);
-    if (askScore) bits.push(`${m.is_knockout ? "After 90: " : ""}${m.home} ${f.home}-${f.away} ${m.away}`);
+    if (askScore) bits.push(`${m.is_knockout ? "Final: " : ""}${m.home} ${f.home}-${f.away} ${m.away}`);
     if (askWinner) bits.push(effWinner === "draw" ? "Draw" : `${effWinner === "home" ? m.home : m.away} to win`);
     if (m.is_knockout && f.finish) bits.push(FINISH_LABELS[f.finish]);
     if (!window.confirm(`Lock it in? No changes once it's in!\n\n${bits.join(" · ")}`)) return;
@@ -353,7 +353,7 @@ export default function PredictTab({
   async function saveResult(m) {
     setResErr("");
     if (rHome === "" || rAway === "") {
-      return setResErr(m.is_knockout ? "Enter the score after 90 minutes." : "Enter the final score.");
+      return setResErr(m.is_knockout ? "Enter the final match score." : "Enter the final score.");
     }
     if (m.q_fg !== false && !rNone && rFg === "") return setResErr("Enter the first-goal minute (or tap No goals).");
     if (rNone && (Number(rHome) !== 0 || Number(rAway) !== 0)) return setResErr("No goals means 0-0!");
@@ -363,11 +363,11 @@ export default function PredictTab({
     if (m.is_knockout && !finishMatchesScore(rFinish, resultScoreState)) {
       return setResErr(
         resultScoreState === "level"
-          ? "A level score after 90 minutes must go to extra time or penalties."
-          : "Extra time or penalties require a level score after 90 minutes."
+          ? "A level final match score must be decided on penalties."
+          : "Penalties require a level final match score."
       );
     }
-    if (levelKO && !rWinner) return setResErr("This knockout is level — pick who went through (extra time / pens).");
+    if (levelKO && !rWinner) return setResErr("This knockout is level — pick who won the penalty shootout.");
     setBusy(true);
     try {
       const patch = {
@@ -434,7 +434,7 @@ export default function PredictTab({
   const myPickText = (m, p) => {
     const bits = [];
     if (m.q_fg !== false) bits.push(p.fg_none ? "No goals (0-0)" : `First goal ${p.fg_minute}'`);
-    if (m.q_score !== false) bits.push(`${p.home}-${p.away}`);
+    if (m.q_score !== false) bits.push(`${m.is_knockout ? "Final " : ""}${p.home}-${p.away}`);
     if (p.winner)
       bits.push(p.winner === "draw" ? "Draw" : `${p.winner === "home" ? m.home : m.away} to win`);
     if (m.is_knockout && p.finish_type) bits.push(FINISH_LABELS[p.finish_type]);
@@ -448,7 +448,7 @@ export default function PredictTab({
       <div className="admin-match-row">
         {resultFor === m.id ? (
           <div className="edit-panel">
-            <span className="field-label">Score after 90 minutes <span className="optional">— before extra time or penalties</span></span>
+            <span className="field-label">Final match score <span className="optional">— include extra-time goals, not shootout kicks</span></span>
             <div className="score-row">
               <span className="score-team">{m.home}</span>
               <input className="input score-in" type="number" inputMode="numeric" min="0" value={rHome}
@@ -491,15 +491,15 @@ export default function PredictTab({
             {m.is_knockout && (
               <span className="field-hint">
                 {resultScoreState === "missing"
-                  ? "Enter the score after 90 minutes first."
+                  ? "Enter the final match score first."
                   : resultScoreState === "level"
-                  ? "Level after 90 minutes — select Extra time or Penalties, then record who went through."
-                  : "A team leads after 90 minutes — select Normal time."}
+                  ? "Level final score — select Penalties, then record the shootout winner."
+                  : "Non-level final score — select Normal time or Extra time."}
               </span>
             )}
             {m.is_knockout && rHome !== "" && rAway !== "" && Number(rHome) === Number(rAway) && (
               <>
-                <span className="field-label">Who went through? <span className="optional">— extra time / penalties</span></span>
+                <span className="field-label">Who won the penalty shootout?</span>
                 <div className="finish-row">
                   <button className={`btn btn-small ${rWinner === "home" ? "btn-primary" : "btn-ghost"}`} onClick={() => setRWinner("home")}>
                     <Flag team={m.home} size={18} /> {m.home}
@@ -664,7 +664,7 @@ export default function PredictTab({
                 )}
                 {askScore && (
                   <>
-                    <span className="q-label">🔢 Score after 90 minutes? <span className="optional">— before extra time or penalties</span></span>
+                    <span className="q-label">🔢 Final match score? <span className="optional">— include extra-time goals, not shootout kicks</span></span>
                     <div className="score-row">
                       <span className="score-team"><Flag team={m.home} size={20} /> {m.home}</span>
                       <input className="input score-in" type="number" inputMode="numeric" min="0" max="20"
@@ -714,10 +714,10 @@ export default function PredictTab({
                     {askScore && (
                       <span className="field-hint">
                         {predictionScoreState === "missing"
-                          ? "Enter your score after 90 minutes first."
+                          ? "Enter your final match score first."
                           : predictionScoreState === "level"
-                          ? "Level after 90 minutes — select Extra time or Penalties, then choose the winner."
-                          : "A team leads after 90 minutes — the match ends in Normal time."}
+                          ? "Level final score — select Penalties, then choose the shootout winner."
+                          : "Non-level final score — select Normal time or Extra time."}
                       </span>
                     )}
                   </>
@@ -767,7 +767,7 @@ export default function PredictTab({
       {rulesOpen && (
         <section className="card rules-card">
           {showFgRule && <p className="rule-line">⏱️ <strong>First goal minute:</strong> exact = 3 pts · one minute out = 2 pts</p>}
-          {showScoreRule && <p className="rule-line">🔢 <strong>Exact score:</strong> 3 pts <span className="optional">— after 90 minutes in knockouts</span></p>}
+          {showScoreRule && <p className="rule-line">🔢 <strong>Exact final score:</strong> 3 pts <span className="optional">— include extra-time goals, not shootout kicks</span></p>}
           {showWinnerRule && <p className="rule-line">🏆 <strong>Match winner</strong> (when asked): 2 pts</p>}
           {showKoRule && <p className="rule-line">⚔️ <strong>Knockouts</strong> — normal/extra time/pens: 2 pts</p>}
           <p className="rule-line">🔒 Predictions lock at kickoff. One shot, no changes. Picks hidden until kickoff, then everyone's are revealed.</p>
